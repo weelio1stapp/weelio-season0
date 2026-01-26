@@ -15,7 +15,6 @@ import {
   TimePreset,
   SortOption,
 } from "@/lib/placesFilters";
-import type { PlaceType } from "@/lib/db/places";
 
 type Props = {
   currentFilters: PlacesFilters;
