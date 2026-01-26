@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Colors - outdoor/adventure palette */
+  --color-forest: #2d5016;
+  --color-moss: #4a7c2f;
+  --color-earth: #8b7355;
+  --color-sky: #87ceeb;
+  --color-sunset: #ff6b35;
+  --color-stone: #6b7280;
+
+  /* Background */
+  --bg-primary: #fdfdfb;
+  --bg-secondary: #f5f5f0;
+  --bg-dark: #1f2937;
+
+  /* Text */
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-light: #9ca3af;
+  --text-inverse: #ffffff;
+
+  /* Accent */
+  --accent-primary: var(--color-moss);
+  --accent-secondary: var(--color-sunset);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--text-primary);
+}
+
+body {
+  background: linear-gradient(
+    135deg,
+    #fdfdfb 0%,
+    #f5f5f0 50%,
+    #e8e8dc 100%
+  );
+  background-attachment: fixed;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
