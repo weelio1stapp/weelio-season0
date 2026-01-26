@@ -27,13 +27,16 @@ export function parseSearchParams(
         .filter((t) => isValidPlaceType(t))
     : [];
 
-  // Parse difficulty
-  const diffParam = searchParams.diff;
-  const difficulty: DifficultyPreset[] = diffParam
-    ? String(diffParam)
-        .split(",")
-        .filter((d) => ["easy", "medium", "hard"].includes(d))
-    : [];
+// Parse difficulty
+const diffParam = searchParams.diff;
+
+const difficulty: DifficultyPreset[] = diffParam
+  ? String(diffParam)
+      .split(",")
+      .filter((d): d is DifficultyPreset =>
+        (["easy", "medium", "hard"] as const).includes(d as DifficultyPreset)
+      )
+  : [];
 
   // Parse time
   const timeParam = searchParams.time;
