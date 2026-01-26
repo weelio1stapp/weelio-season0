@@ -20,7 +20,7 @@ export const createPlaceSchema = z.object({
     .min(1, "Název je povinný")
     .max(200, "Název je příliš dlouhý (max 200 znaků)"),
 
-type: z.enum(PLACE_TYPES, { message: "Vyber platný typ místa" }),
+  type: z.enum(PLACE_TYPES, { message: "Vyber platný typ místa" }),
 
   area: z
     .string()
@@ -33,13 +33,15 @@ type: z.enum(PLACE_TYPES, { message: "Vyber platný typ místa" }),
     .max(500, "Popis je příliš dlouhý (max 500 znaků)"),
 
   time_min: z.coerce
-    .number({ invalid_type_error: "Zadej číslo" })
+    .number()
+    .refine((v) => Number.isFinite(v), "Zadej číslo")
     .int("Musí být celé číslo")
     .min(1, "Minimálně 1 minuta")
     .max(1440, "Maximum 1440 minut (24 hodin)"),
 
   difficulty: z.coerce
-    .number({ invalid_type_error: "Zadej číslo" })
+    .number()
+    .refine((v) => Number.isFinite(v), "Zadej číslo")
     .int("Musí být celé číslo")
     .min(1, "Minimálně 1")
     .max(5, "Maximálně 5"),
