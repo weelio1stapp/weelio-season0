@@ -4,8 +4,16 @@ import LeaderboardCard from "@/components/leaderboard/LeaderboardCard";
 import ComingSoonCard from "@/components/leaderboard/ComingSoonCard";
 import TopAuthorsPreview from "@/components/leaderboard/TopAuthorsPreview";
 import TopPlacesPreview from "@/components/leaderboard/TopPlacesPreview";
+import TopWalkersPreview from "@/components/leaderboard/TopWalkersPreview";
+import { getTopPlaces, getTopAuthors, getTopWalkers } from "@/lib/db/leaderboard";
 
-export default function LeaderboardPage() {
+export default async function LeaderboardPage() {
+  // Fetch top 3 for each category (30 days window)
+  const [topPlaces, topAuthors, topWalkers] = await Promise.all([
+    getTopPlaces(3, 30),
+    getTopAuthors(3, 30),
+    getTopWalkers(3, 30),
+  ]);
   return (
     <Container>
       <PageHeader
@@ -17,11 +25,11 @@ export default function LeaderboardPage() {
         {/* Top Authors */}
         <LeaderboardCard
           title="Top autoři"
-          description="Průzkumníci s nejvíce přidanými místy"
+          description="Autoři s nejoblíbenějšími místy"
           href="/leaderboard/authors"
           icon="✍️"
         >
-          <TopAuthorsPreview />
+          <TopAuthorsPreview authors={topAuthors} />
         </LeaderboardCard>
 
         {/* Top Places */}
@@ -31,15 +39,18 @@ export default function LeaderboardPage() {
           href="/leaderboard/places"
           icon="📍"
         >
-          <TopPlacesPreview />
+          <TopPlacesPreview places={topPlaces} />
         </LeaderboardCard>
 
-        {/* Top Walkers - Coming Soon */}
-        <ComingSoonCard
+        {/* Top Walkers */}
+        <LeaderboardCard
           title="Top chodci"
-          description="Průzkumníci s nejvíce navštívenými místy"
+          description="Průzkumníci s nejvíce návštěvami"
+          href="/leaderboard/walkers"
           icon="🚶"
-        />
+        >
+          <TopWalkersPreview walkers={topWalkers} />
+        </LeaderboardCard>
 
         {/* Challenges/Seasons - Coming Soon */}
         <ComingSoonCard
@@ -52,10 +63,10 @@ export default function LeaderboardPage() {
       {/* Info */}
       <div className="mt-8 p-6 bg-gradient-to-r from-[var(--accent-primary)]/10 to-[var(--color-earth)]/10 rounded-lg border border-[var(--accent-primary)]/20">
         <p className="text-[var(--text-secondary)] text-center">
-          Sbírej body navštěvováním míst, sdílením fotek a psaním recenzí.
+          Navštěvuj místa, sbírej návštěvy a staň se legendou Weelio!
           <br />
           <span className="text-sm">
-            Žebříčky se aktualizují každý den v půlnoci.
+            Žebříčky zobrazují statistiky za posledních 30 dní.
           </span>
         </p>
       </div>

@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import { fetchPlaceById } from "@/lib/db/places";
 import { PLACE_TYPE_LABELS } from "@/lib/placesFilters";
 import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
+import { hasVisitedToday } from "@/lib/db/visits";
 import PlaceGallery from "@/components/PlaceGallery";
 import PlaceAuthorActions from "@/components/PlaceAuthorActions";
+import VisitedButton from "@/components/VisitedButton";
 
 /**
  * Format coordinate for Mapy.com route planner
@@ -58,6 +60,9 @@ export default async function PlaceDetailPage({
   const currentUserId = user?.id || null;
   const isAuthor = currentUserId === place.author_user_id;
 
+  // Check if user has visited today
+  const alreadyVisited = await hasVisitedToday(place.id);
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex items-center justify-between gap-4 mb-4">
@@ -101,6 +106,13 @@ export default async function PlaceDetailPage({
         <h3 className="text-base font-semibold">Proč jít</h3>
         <p className="mt-2 text-sm opacity-80">{place.why}</p>
       </div>
+
+      {/* Visited Button */}
+      {currentUserId && (
+        <div className="mt-6 flex justify-center">
+          <VisitedButton placeId={place.id} alreadyVisited={alreadyVisited} />
+        </div>
+      )}
 
       {/* Trasa / Mapa - only show if coordinates exist */}
       {place.start_lat &&

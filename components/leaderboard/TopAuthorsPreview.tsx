@@ -1,16 +1,28 @@
-// Mock data for top authors
-const mockTopAuthors = [
-  { id: 1, name: "Jan Novák", places: 15, points: 2450 },
-  { id: 2, name: "Eva Procházková", places: 12, points: 2100 },
-  { id: 3, name: "Petr Svoboda", places: 10, points: 1850 },
-];
+import type { TopAuthor } from "@/lib/db/leaderboard";
 
-export default function TopAuthorsPreview() {
+interface TopAuthorsPreviewProps {
+  authors: TopAuthor[];
+}
+
+function shortenUserId(userId: string): string {
+  if (userId.length <= 12) return userId;
+  return `${userId.slice(0, 6)}...${userId.slice(-6)}`;
+}
+
+export default function TopAuthorsPreview({ authors }: TopAuthorsPreviewProps) {
+  if (authors.length === 0) {
+    return (
+      <div className="text-center py-4 text-sm text-[var(--text-secondary)]">
+        Zatím nejsou žádní autoři
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
-      {mockTopAuthors.map((author, index) => (
+      {authors.map((author, index) => (
         <div
-          key={author.id}
+          key={author.user_id}
           className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors"
         >
           {/* Rank */}
@@ -22,20 +34,20 @@ export default function TopAuthorsPreview() {
 
           {/* Name & Stats */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-[var(--text-primary)] truncate">
-              {author.name}
+            <h3 className="font-semibold text-[var(--text-primary)] truncate font-mono text-sm">
+              User {shortenUserId(author.user_id)}
             </h3>
             <p className="text-sm text-[var(--text-secondary)]">
-              {author.places} míst
+              {author.place_count} míst
             </p>
           </div>
 
-          {/* Points */}
+          {/* Visits */}
           <div className="text-right">
             <p className="text-lg font-bold text-[var(--accent-primary)]">
-              {author.points.toLocaleString()}
+              {author.total_visits}
             </p>
-            <p className="text-xs text-[var(--text-secondary)]">bodů</p>
+            <p className="text-xs text-[var(--text-secondary)]">návštěv</p>
           </div>
         </div>
       ))}

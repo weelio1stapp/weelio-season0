@@ -1,23 +1,28 @@
-import type { TopPlace } from "@/lib/db/leaderboard";
+import type { TopWalker } from "@/lib/db/leaderboard";
 
-interface TopPlacesPreviewProps {
-  places: TopPlace[];
+interface TopWalkersPreviewProps {
+  walkers: TopWalker[];
 }
 
-export default function TopPlacesPreview({ places }: TopPlacesPreviewProps) {
-  if (places.length === 0) {
+function shortenUserId(userId: string): string {
+  if (userId.length <= 12) return userId;
+  return `${userId.slice(0, 6)}...${userId.slice(-6)}`;
+}
+
+export default function TopWalkersPreview({ walkers }: TopWalkersPreviewProps) {
+  if (walkers.length === 0) {
     return (
       <div className="text-center py-4 text-sm text-[var(--text-secondary)]">
-        Zatím nejsou žádné návštěvy
+        Zatím nejsou žádní chodci
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      {places.map((place, index) => (
+      {walkers.map((walker, index) => (
         <div
-          key={place.place_id}
+          key={walker.user_id}
           className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors"
         >
           {/* Rank */}
@@ -25,18 +30,20 @@ export default function TopPlacesPreview({ places }: TopPlacesPreviewProps) {
             {index + 1}
           </div>
 
-          {/* Place info */}
+          {/* Walker info */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-[var(--text-primary)] truncate">
-              {place.place_name}
+            <h3 className="font-semibold text-[var(--text-primary)] truncate font-mono text-sm">
+              User {shortenUserId(walker.user_id)}
             </h3>
-            <p className="text-sm text-[var(--text-secondary)]">{place.area}</p>
+            <p className="text-sm text-[var(--text-secondary)]">
+              {walker.unique_places} míst
+            </p>
           </div>
 
           {/* Visits */}
           <div className="text-right">
             <p className="text-lg font-bold text-[var(--accent-primary)]">
-              {place.visit_count}
+              {walker.visit_count}
             </p>
             <p className="text-xs text-[var(--text-secondary)]">návštěv</p>
           </div>

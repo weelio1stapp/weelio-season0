@@ -2,7 +2,7 @@ import Container from "@/components/Container";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import Link from "next/link";
-import { getTopAuthors } from "@/lib/db/leaderboard";
+import { getTopWalkers } from "@/lib/db/leaderboard";
 
 /**
  * Shorten user ID for display (e.g., "abc123...xyz789")
@@ -13,17 +13,18 @@ function shortenUserId(userId: string): string {
 }
 
 /**
- * Get badge based on engagement
+ * Get badge based on visit count
  */
-function getBadge(placeCount: number, totalVisits: number): string {
-  if (totalVisits >= 100 || placeCount >= 10) return "Legendární autor";
-  if (totalVisits >= 50 || placeCount >= 5) return "Zkušený autor";
-  if (totalVisits >= 20 || placeCount >= 3) return "Aktivní autor";
-  return "Začínající autor";
+function getBadge(visitCount: number, uniquePlaces: number): string {
+  if (visitCount >= 50 || uniquePlaces >= 20) return "Legendární chodec";
+  if (visitCount >= 25 || uniquePlaces >= 10) return "Zkušený chodec";
+  if (visitCount >= 10 || uniquePlaces >= 5) return "Aktivní chodec";
+  return "Začínající chodec";
 }
 
-export default async function AuthorsLeaderboardPage() {
-  const topAuthors = await getTopAuthors(10, 30);
+export default async function WalkersLeaderboardPage() {
+  const topWalkers = await getTopWalkers(10, 30);
+
   return (
     <Container>
       <div className="mb-6">
@@ -36,24 +37,24 @@ export default async function AuthorsLeaderboardPage() {
       </div>
 
       <PageHeader
-        title="Top autoři"
-        description="Autoři s nejoblíbenějšími místy na Weelio"
+        title="Top chodci"
+        description="Uživatelé s nejvíce navštívenými místy"
       />
 
-      {topAuthors.length === 0 ? (
+      {topWalkers.length === 0 ? (
         <Card>
           <p className="text-center text-[var(--text-secondary)]">
-            Zatím nejsou žádní autoři s návštěvami.
+            Zatím nejsou žádné návštěvy.
           </p>
         </Card>
       ) : (
         <Card>
           <div className="space-y-4">
-            {topAuthors.map((author, index) => {
-              const badge = getBadge(author.place_count, author.total_visits);
+            {topWalkers.map((walker, index) => {
+              const badge = getBadge(walker.visit_count, walker.unique_places);
               return (
                 <div
-                  key={author.user_id}
+                  key={walker.user_id}
                   className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   {/* Rank */}
@@ -64,23 +65,23 @@ export default async function AuthorsLeaderboardPage() {
                     {index > 2 && index + 1}
                   </div>
 
-                  {/* Author info */}
+                  {/* Walker info */}
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-lg text-[var(--text-primary)] font-mono truncate">
-                      User {shortenUserId(author.user_id)}
+                      User {shortenUserId(walker.user_id)}
                     </h3>
                     <div className="flex items-center gap-2 mt-1 text-sm text-[var(--text-secondary)]">
                       <span className="px-2 py-0.5 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] rounded-full text-xs font-medium">
                         {badge}
                       </span>
-                      <span>• {author.place_count} míst</span>
+                      <span>• {walker.unique_places} unikátních míst</span>
                     </div>
                   </div>
 
                   {/* Visits */}
                   <div className="text-right flex-shrink-0">
                     <p className="text-2xl font-bold text-[var(--accent-primary)]">
-                      {author.total_visits.toLocaleString()}
+                      {walker.visit_count}
                     </p>
                     <p className="text-sm text-[var(--text-secondary)]">návštěv</p>
                   </div>
@@ -94,7 +95,7 @@ export default async function AuthorsLeaderboardPage() {
       {/* Info */}
       <div className="mt-8 text-center">
         <p className="text-[var(--text-secondary)]">
-          Autoři jsou seřazeni podle celkového počtu návštěv jejich míst za posledních 30 dní.
+          Chodci jsou seřazeni podle celkového počtu návštěv za posledních 30 dní.
           <br />
           <span className="text-sm">
             Profily uživatelů budou přidány v budoucí verzi.
