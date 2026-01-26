@@ -22,6 +22,21 @@ export type TopAuthor = {
   total_visits: number;
 };
 
+function shouldFallbackToManualQuery(rpcError: any) {
+  // 42883 = function does not exist
+  // 22023 / 22P02 / 42601 apod. často u RPC znamená špatné parametry / typy
+  const code = rpcError?.code;
+  const msg = (rpcError?.message || "").toLowerCase();
+  return (
+    code === "42883" ||
+    msg.includes("function") && msg.includes("does not exist") ||
+    msg.includes("argument") ||
+    msg.includes("parameter") ||
+    msg.includes("invalid input") ||
+    msg.includes("cannot cast")
+  );
+}
+
 export async function getTopPlaces(
   limit = 10,
   days: number | null = null
@@ -29,20 +44,23 @@ export async function getTopPlaces(
   try {
     const supabase = await getSupabaseServerClient();
 
-    const { data: rpcData, error: rpcError } = await supabase.rpc(
-      "get_top_places",
-      {
-        p_limit: limit,
-        p_days: days,
-      }
-    );
+    // IMPORTANT: param names must match function args in Postgres (limit_n, days)
+    const { data: rpcData, error: rpcError } = await supabase.rpc("get_top_places", {
+      limit_n: limit,
+      days,
+    });
 
-    if (rpcError && rpcError.code === "42883") {
+    if (rpcError && shouldFallbackToManualQuery(rpcError)) {
       return await getTopPlacesFallback(limit, days);
     }
 
     if (rpcError) {
-      console.error("RPC error:", rpcError);
+      console.error("RPC error:", {
+        code: rpcError.code,
+        message: rpcError.message,
+        details: rpcError.details,
+        hint: rpcError.hint,
+      });
       return [];
     }
 
@@ -77,7 +95,6 @@ async function getTopPlacesFallback(
       );
 
     if (dateFilter) {
-      // FIX: place_visits uses visited_at, not created_at
       query = query.gte("visited_at", dateFilter);
     }
 
@@ -122,8 +139,7 @@ async function getTopPlacesFallback(
       .sort((a, b) => b.visit_count - a.visit_count)
       .slice(0, limit);
 
-    const withThumbnails = await addThumbnailsToPlaces(results);
-    return withThumbnails;
+    return await addThumbnailsToPlaces(results);
   } catch (error) {
     console.error("getTopPlacesFallback error:", error);
     return [];
@@ -137,20 +153,22 @@ export async function getTopWalkers(
   try {
     const supabase = await getSupabaseServerClient();
 
-    const { data: rpcData, error: rpcError } = await supabase.rpc(
-      "get_top_walkers",
-      {
-        p_limit: limit,
-        p_days: days,
-      }
-    );
+    const { data: rpcData, error: rpcError } = await supabase.rpc("get_top_walkers", {
+      limit_n: limit,
+      days,
+    });
 
-    if (rpcError && rpcError.code === "42883") {
+    if (rpcError && shouldFallbackToManualQuery(rpcError)) {
       return await getTopWalkersFallback(limit, days);
     }
 
     if (rpcError) {
-      console.error("RPC error:", rpcError);
+      console.error("RPC error:", {
+        code: rpcError.code,
+        message: rpcError.message,
+        details: rpcError.details,
+        hint: rpcError.hint,
+      });
       return [];
     }
 
@@ -178,7 +196,6 @@ async function getTopWalkersFallback(
     let query = supabase.from("place_visits").select("user_id, place_id");
 
     if (dateFilter) {
-      // FIX: place_visits uses visited_at, not created_at
       query = query.gte("visited_at", dateFilter);
     }
 
@@ -212,7 +229,7 @@ async function getTopWalkersFallback(
       }
     });
 
-    const results: TopWalker[] = Array.from(userStats.entries())
+    return Array.from(userStats.entries())
       .map(([userId, stats]) => ({
         user_id: userId,
         visit_count: stats.visitCount,
@@ -220,8 +237,6 @@ async function getTopWalkersFallback(
       }))
       .sort((a, b) => b.visit_count - a.visit_count)
       .slice(0, limit);
-
-    return results;
   } catch (error) {
     console.error("getTopWalkersFallback error:", error);
     return [];
@@ -235,20 +250,22 @@ export async function getTopAuthors(
   try {
     const supabase = await getSupabaseServerClient();
 
-    const { data: rpcData, error: rpcError } = await supabase.rpc(
-      "get_top_authors",
-      {
-        p_limit: limit,
-        p_days: days,
-      }
-    );
+    const { data: rpcData, error: rpcError } = await supabase.rpc("get_top_authors", {
+      limit_n: limit,
+      days,
+    });
 
-    if (rpcError && rpcError.code === "42883") {
+    if (rpcError && shouldFallbackToManualQuery(rpcError)) {
       return await getTopAuthorsFallback(limit, days);
     }
 
     if (rpcError) {
-      console.error("RPC error:", rpcError);
+      console.error("RPC error:", {
+        code: rpcError.code,
+        message: rpcError.message,
+        details: rpcError.details,
+        hint: rpcError.hint,
+      });
       return [];
     }
 
@@ -285,7 +302,6 @@ async function getTopAuthorsFallback(
     let visitsQuery = supabase.from("place_visits").select("place_id");
 
     if (dateFilter) {
-      // FIX: place_visits uses visited_at, not created_at
       visitsQuery = visitsQuery.gte("visited_at", dateFilter);
     }
 
@@ -332,21 +348,17 @@ async function getTopAuthorsFallback(
       }
     });
 
-    const results: TopAuthor[] = Array.from(authorStats.entries())
+    return Array.from(authorStats.entries())
       .map(([userId, stats]) => ({
         user_id: userId,
         place_count: stats.placeIds.size,
         total_visits: stats.visitCount,
       }))
       .sort((a, b) => {
-        if (b.total_visits !== a.total_visits) {
-          return b.total_visits - a.total_visits;
-        }
+        if (b.total_visits !== a.total_visits) return b.total_visits - a.total_visits;
         return b.place_count - a.place_count;
       })
       .slice(0, limit);
-
-    return results;
   } catch (error) {
     console.error("getTopAuthorsFallback error:", error);
     return [];
