@@ -7,6 +7,8 @@ import TopPlacesPreview from "@/components/leaderboard/TopPlacesPreview";
 import TopWalkersPreview from "@/components/leaderboard/TopWalkersPreview";
 import { getTopPlaces, getTopAuthors, getTopWalkers } from "@/lib/db/leaderboard";
 
+export const dynamic = "force-dynamic";
+
 export default async function LeaderboardPage() {
   // Fetch top 3 for each category (30 days window)
   const [topPlaces, topAuthors, topWalkers] = await Promise.all([

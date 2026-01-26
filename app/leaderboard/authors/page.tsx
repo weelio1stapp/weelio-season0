@@ -4,6 +4,8 @@ import Card from "@/components/Card";
 import Link from "next/link";
 import { getTopAuthors } from "@/lib/db/leaderboard";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Shorten user ID for display (e.g., "abc123...xyz789")
  */

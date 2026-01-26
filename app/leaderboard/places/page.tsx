@@ -5,6 +5,8 @@ import Link from "next/link";
 import { getTopPlaces } from "@/lib/db/leaderboard";
 import { PLACE_TYPE_LABELS } from "@/lib/placesFilters";
 
+export const dynamic = "force-dynamic";
+
 export default async function PlacesLeaderboardPage() {
   const topPlaces = await getTopPlaces(10, 30);
   return (
