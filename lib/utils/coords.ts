@@ -23,8 +23,9 @@ export function parseLatLng(input: string): { lat: number; lng: number } | null 
     return null;
   }
 
-  let lat: number;
-  let lng: number;
+let lat = Number.NaN;
+let lng = Number.NaN;
+let found = false;
 
   if (commaCount === 1) {
     // Simple case: one comma separating lat and lng
