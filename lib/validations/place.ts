@@ -20,9 +20,7 @@ export const createPlaceSchema = z.object({
     .min(1, "Název je povinný")
     .max(200, "Název je příliš dlouhý (max 200 znaků)"),
 
-  type: z.enum(PLACE_TYPES, {
-    errorMap: () => ({ message: "Vyber platný typ místa" }),
-  }),
+type: z.enum(PLACE_TYPES, { message: "Vyber platný typ místa" }),
 
   area: z
     .string()
