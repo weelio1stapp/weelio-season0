@@ -39,8 +39,6 @@ const difficulty: DifficultyPreset[] = diffParam
   : [];
 
 // Parse time
-const timeParam = searchParams.time;
-
 const time: TimePreset[] = timeParam
   ? String(timeParam)
       .split(",")
