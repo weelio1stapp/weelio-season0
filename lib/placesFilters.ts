@@ -38,13 +38,16 @@ const difficulty: DifficultyPreset[] = diffParam
       )
   : [];
 
-  // Parse time
-  const timeParam = searchParams.time;
-  const time: TimePreset[] = timeParam
-    ? String(timeParam)
-        .split(",")
-        .filter((t) => ["lt60", "btw60_120", "gt120"].includes(t))
-    : [];
+// Parse time
+const timeParam = searchParams.time;
+
+const time: TimePreset[] = timeParam
+  ? String(timeParam)
+      .split(",")
+      .filter((t): t is TimePreset =>
+        (["lt60", "btw60_120", "gt120"] as const).includes(t as TimePreset)
+      )
+  : [];
 
   // Parse area
   const area = searchParams.area ? String(searchParams.area) : null;
