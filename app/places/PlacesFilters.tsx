@@ -1,8 +1,15 @@
+import { useRouter, useSearchParams } from "next/navigation";
+import type { PlacesFilters } from "@/lib/placesFilters";
+import {
+  PLACE_TYPE_LABELS,
+  DIFFICULTY_LABELS,
+  TIME_LABELS,
+} from "@/lib/placesFilters";
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import type { PlacesFilters } from "@/lib/placesFilters";
 import {
-  PlacesFilters,
   PLACE_TYPE_LABELS,
   DIFFICULTY_LABELS,
   TIME_LABELS,
