@@ -12,7 +12,6 @@ export type TopPlace = {
 
 export type TopWalker = {
   user_id: string;
-  // user_name would come from profiles table if it exists
   visit_count: number;
   unique_places: number;
 };
@@ -23,11 +22,6 @@ export type TopAuthor = {
   total_visits: number;
 };
 
-/**
- * Get top visited places
- * @param limit - Number of results to return (default 10)
- * @param days - Number of days to look back (null = all time)
- */
 export async function getTopPlaces(
   limit = 10,
   days: number | null = null
@@ -35,7 +29,6 @@ export async function getTopPlaces(
   try {
     const supabase = await getSupabaseServerClient();
 
-    // Try RPC function first
     const { data: rpcData, error: rpcError } = await supabase.rpc(
       "get_top_places",
       {
@@ -44,7 +37,6 @@ export async function getTopPlaces(
       }
     );
 
-    // If RPC doesn't exist, fall back to manual query
     if (rpcError && rpcError.code === "42883") {
       return await getTopPlacesFallback(limit, days);
     }
@@ -61,9 +53,6 @@ export async function getTopPlaces(
   }
 }
 
-/**
- * Fallback implementation when RPC doesn't exist
- */
 async function getTopPlacesFallback(
   limit: number,
   days: number | null
@@ -71,7 +60,6 @@ async function getTopPlacesFallback(
   try {
     const supabase = await getSupabaseServerClient();
 
-    // Build date filter
     let dateFilter = "";
     if (days !== null) {
       const cutoffDate = new Date();
@@ -79,7 +67,6 @@ async function getTopPlacesFallback(
       dateFilter = cutoffDate.toISOString();
     }
 
-    // Query with join to places table
     let query = supabase
       .from("place_visits")
       .select(
@@ -90,7 +77,8 @@ async function getTopPlacesFallback(
       );
 
     if (dateFilter) {
-      query = query.gte("created_at", dateFilter);
+      // FIX: place_visits uses visited_at, not created_at
+      query = query.gte("visited_at", dateFilter);
     }
 
     const { data, error } = await query;
@@ -102,7 +90,6 @@ async function getTopPlacesFallback(
 
     if (!data) return [];
 
-    // Aggregate counts manually
     const counts = new Map<
       string,
       { name: string; area: string; type: PlaceType; count: number }
@@ -124,7 +111,6 @@ async function getTopPlacesFallback(
       }
     });
 
-    // Convert to array and sort
     const results: TopPlace[] = Array.from(counts.entries())
       .map(([placeId, info]) => ({
         place_id: placeId,
@@ -136,7 +122,6 @@ async function getTopPlacesFallback(
       .sort((a, b) => b.visit_count - a.visit_count)
       .slice(0, limit);
 
-    // Fetch thumbnails for top places
     const withThumbnails = await addThumbnailsToPlaces(results);
     return withThumbnails;
   } catch (error) {
@@ -145,11 +130,6 @@ async function getTopPlacesFallback(
   }
 }
 
-/**
- * Get top walkers (users with most visits)
- * @param limit - Number of results to return (default 10)
- * @param days - Number of days to look back (null = all time)
- */
 export async function getTopWalkers(
   limit = 10,
   days: number | null = null
@@ -157,7 +137,6 @@ export async function getTopWalkers(
   try {
     const supabase = await getSupabaseServerClient();
 
-    // Try RPC function first
     const { data: rpcData, error: rpcError } = await supabase.rpc(
       "get_top_walkers",
       {
@@ -166,7 +145,6 @@ export async function getTopWalkers(
       }
     );
 
-    // If RPC doesn't exist, fall back to manual query
     if (rpcError && rpcError.code === "42883") {
       return await getTopWalkersFallback(limit, days);
     }
@@ -183,9 +161,6 @@ export async function getTopWalkers(
   }
 }
 
-/**
- * Fallback implementation when RPC doesn't exist
- */
 async function getTopWalkersFallback(
   limit: number,
   days: number | null
@@ -193,7 +168,6 @@ async function getTopWalkersFallback(
   try {
     const supabase = await getSupabaseServerClient();
 
-    // Build date filter
     let dateFilter = "";
     if (days !== null) {
       const cutoffDate = new Date();
@@ -204,7 +178,8 @@ async function getTopWalkersFallback(
     let query = supabase.from("place_visits").select("user_id, place_id");
 
     if (dateFilter) {
-      query = query.gte("created_at", dateFilter);
+      // FIX: place_visits uses visited_at, not created_at
+      query = query.gte("visited_at", dateFilter);
     }
 
     const { data, error } = await query;
@@ -216,7 +191,6 @@ async function getTopWalkersFallback(
 
     if (!data) return [];
 
-    // Aggregate counts manually
     const userStats = new Map<
       string,
       { visitCount: number; uniquePlaces: Set<string> }
@@ -238,7 +212,6 @@ async function getTopWalkersFallback(
       }
     });
 
-    // Convert to array and sort
     const results: TopWalker[] = Array.from(userStats.entries())
       .map(([userId, stats]) => ({
         user_id: userId,
@@ -255,11 +228,6 @@ async function getTopWalkersFallback(
   }
 }
 
-/**
- * Get top authors by engagement (total visits to their places)
- * @param limit - Number of results to return (default 10)
- * @param days - Number of days to look back (null = all time)
- */
 export async function getTopAuthors(
   limit = 10,
   days: number | null = null
@@ -267,7 +235,6 @@ export async function getTopAuthors(
   try {
     const supabase = await getSupabaseServerClient();
 
-    // Try RPC function first
     const { data: rpcData, error: rpcError } = await supabase.rpc(
       "get_top_authors",
       {
@@ -276,7 +243,6 @@ export async function getTopAuthors(
       }
     );
 
-    // If RPC doesn't exist, fall back to manual query
     if (rpcError && rpcError.code === "42883") {
       return await getTopAuthorsFallback(limit, days);
     }
@@ -293,9 +259,6 @@ export async function getTopAuthors(
   }
 }
 
-/**
- * Fallback implementation for top authors
- */
 async function getTopAuthorsFallback(
   limit: number,
   days: number | null
@@ -303,7 +266,6 @@ async function getTopAuthorsFallback(
   try {
     const supabase = await getSupabaseServerClient();
 
-    // Build date filter
     let dateFilter = "";
     if (days !== null) {
       const cutoffDate = new Date();
@@ -311,7 +273,6 @@ async function getTopAuthorsFallback(
       dateFilter = cutoffDate.toISOString();
     }
 
-    // Get all places with their authors
     const { data: places, error: placesError } = await supabase
       .from("places")
       .select("id, author_user_id");
@@ -321,13 +282,11 @@ async function getTopAuthorsFallback(
       return [];
     }
 
-    // Get visits for these places
-    let visitsQuery = supabase
-      .from("place_visits")
-      .select("place_id");
+    let visitsQuery = supabase.from("place_visits").select("place_id");
 
     if (dateFilter) {
-      visitsQuery = visitsQuery.gte("created_at", dateFilter);
+      // FIX: place_visits uses visited_at, not created_at
+      visitsQuery = visitsQuery.gte("visited_at", dateFilter);
     }
 
     const { data: visits, error: visitsError } = await visitsQuery;
@@ -337,13 +296,11 @@ async function getTopAuthorsFallback(
       return [];
     }
 
-    // Map place_id to author_user_id
     const placeToAuthor = new Map<string, string>();
     places.forEach((place) => {
       placeToAuthor.set(place.id, place.author_user_id);
     });
 
-    // Count visits per author
     const authorStats = new Map<
       string,
       { placeIds: Set<string>; visitCount: number }
@@ -365,7 +322,6 @@ async function getTopAuthorsFallback(
       }
     });
 
-    // Also include authors with places but no visits
     places.forEach((place) => {
       const authorId = place.author_user_id;
       if (!authorStats.has(authorId)) {
@@ -376,7 +332,6 @@ async function getTopAuthorsFallback(
       }
     });
 
-    // Convert to array and sort by visits, then by place count
     const results: TopAuthor[] = Array.from(authorStats.entries())
       .map(([userId, stats]) => ({
         user_id: userId,
@@ -384,11 +339,9 @@ async function getTopAuthorsFallback(
         total_visits: stats.visitCount,
       }))
       .sort((a, b) => {
-        // Sort by total visits first
         if (b.total_visits !== a.total_visits) {
           return b.total_visits - a.total_visits;
         }
-        // If visits are equal, sort by place count
         return b.place_count - a.place_count;
       })
       .slice(0, limit);
@@ -400,19 +353,13 @@ async function getTopAuthorsFallback(
   }
 }
 
-/**
- * Add thumbnail URLs to places
- */
-async function addThumbnailsToPlaces(
-  places: TopPlace[]
-): Promise<TopPlace[]> {
+async function addThumbnailsToPlaces(places: TopPlace[]): Promise<TopPlace[]> {
   if (places.length === 0) return [];
 
   try {
     const supabase = await getSupabaseServerClient();
     const placeIds = places.map((p) => p.place_id);
 
-    // Get first photo for each place
     const { data: media, error } = await supabase
       .from("place_media")
       .select("place_id, storage_path")
@@ -425,7 +372,6 @@ async function addThumbnailsToPlaces(
       return places;
     }
 
-    // Map place_id to first photo
     const placeToPhoto = new Map<string, string>();
     media.forEach((m: any) => {
       if (!placeToPhoto.has(m.place_id)) {
@@ -433,14 +379,10 @@ async function addThumbnailsToPlaces(
       }
     });
 
-    // Add thumbnail URLs
     return places.map((place) => {
       const storagePath = placeToPhoto.get(place.place_id);
-      if (!storagePath) {
-        return place;
-      }
+      if (!storagePath) return place;
 
-      // Generate public URL
       const { data: urlData } = supabase.storage
         .from("place-media")
         .getPublicUrl(storagePath);
