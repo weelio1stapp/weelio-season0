@@ -22,21 +22,6 @@ export type TopAuthor = {
   total_visits: number;
 };
 
-function shouldFallbackToManualQuery(rpcError: any) {
-  // 42883 = function does not exist
-  // 22023 / 22P02 / 42601 apod. často u RPC znamená špatné parametry / typy
-  const code = rpcError?.code;
-  const msg = (rpcError?.message || "").toLowerCase();
-  return (
-    code === "42883" ||
-    msg.includes("function") && msg.includes("does not exist") ||
-    msg.includes("argument") ||
-    msg.includes("parameter") ||
-    msg.includes("invalid input") ||
-    msg.includes("cannot cast")
-  );
-}
-
 export async function getTopPlaces(
   limit = 10,
   days: number | null = null
@@ -44,18 +29,18 @@ export async function getTopPlaces(
   try {
     const supabase = await getSupabaseServerClient();
 
-    // IMPORTANT: param names must match function args in Postgres (limit_n, days)
-    const { data: rpcData, error: rpcError } = await supabase.rpc("get_top_places", {
-      limit_n: limit,
-      days,
-    });
-
-    if (rpcError && shouldFallbackToManualQuery(rpcError)) {
-      return await getTopPlacesFallback(limit, days);
-    }
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      "get_top_places",
+      { p_limit: limit, p_days: days }
+    );
 
     if (rpcError) {
-      console.error("RPC error:", {
+      // když funkce neexistuje → fallback
+      if (rpcError.code === "42883") {
+        return await getTopPlacesFallback(limit, days);
+      }
+
+      console.error("RPC get_top_places error:", {
         code: rpcError.code,
         message: rpcError.message,
         details: rpcError.details,
@@ -64,12 +49,85 @@ export async function getTopPlaces(
       return [];
     }
 
-    return rpcData || [];
+    const rows = (rpcData ?? []) as TopPlace[];
+
+    // doplníme thumbnaily (RPC je nevrací)
+    return await addThumbnailsToPlaces(rows);
   } catch (error) {
     console.error("getTopPlaces error:", error);
     return [];
   }
 }
+
+export async function getTopWalkers(
+  limit = 10,
+  days: number | null = null
+): Promise<TopWalker[]> {
+  try {
+    const supabase = await getSupabaseServerClient();
+
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      "get_top_walkers",
+      { p_limit: limit, p_days: days }
+    );
+
+    if (rpcError) {
+      if (rpcError.code === "42883") {
+        return await getTopWalkersFallback(limit, days);
+      }
+
+      console.error("RPC get_top_walkers error:", {
+        code: rpcError.code,
+        message: rpcError.message,
+        details: rpcError.details,
+        hint: rpcError.hint,
+      });
+      return [];
+    }
+
+    return (rpcData ?? []) as TopWalker[];
+  } catch (error) {
+    console.error("getTopWalkers error:", error);
+    return [];
+  }
+}
+
+export async function getTopAuthors(
+  limit = 10,
+  days: number | null = null
+): Promise<TopAuthor[]> {
+  try {
+    const supabase = await getSupabaseServerClient();
+
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      "get_top_authors",
+      { p_limit: limit, p_days: days }
+    );
+
+    if (rpcError) {
+      if (rpcError.code === "42883") {
+        return await getTopAuthorsFallback(limit, days);
+      }
+
+      console.error("RPC get_top_authors error:", {
+        code: rpcError.code,
+        message: rpcError.message,
+        details: rpcError.details,
+        hint: rpcError.hint,
+      });
+      return [];
+    }
+
+    return (rpcData ?? []) as TopAuthor[];
+  } catch (error) {
+    console.error("getTopAuthors error:", error);
+    return [];
+  }
+}
+
+/* -----------------------------
+   FALLBACKS (kdyby RPC nebyly)
+------------------------------ */
 
 async function getTopPlacesFallback(
   limit: number,
@@ -78,33 +136,21 @@ async function getTopPlacesFallback(
   try {
     const supabase = await getSupabaseServerClient();
 
-    let dateFilter = "";
+    let query = supabase
+      .from("place_visits")
+      .select(`place_id, places!inner(name, area, type), visited_at`);
+
     if (days !== null) {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - days);
-      dateFilter = cutoffDate.toISOString();
-    }
-
-    let query = supabase
-      .from("place_visits")
-      .select(
-        `
-        place_id,
-        places!inner(name, area, type)
-      `
-      );
-
-    if (dateFilter) {
-      query = query.gte("visited_at", dateFilter);
+      query = query.gte("visited_at", cutoffDate.toISOString());
     }
 
     const { data, error } = await query;
-
     if (error) {
-      console.error("Fallback query error:", error);
+      console.error("Fallback getTopPlaces query error:", error);
       return [];
     }
-
     if (!data) return [];
 
     const counts = new Map<
@@ -115,7 +161,6 @@ async function getTopPlacesFallback(
     data.forEach((visit: any) => {
       const placeId = visit.place_id;
       const existing = counts.get(placeId);
-
       if (existing) {
         existing.count++;
       } else {
@@ -146,39 +191,6 @@ async function getTopPlacesFallback(
   }
 }
 
-export async function getTopWalkers(
-  limit = 10,
-  days: number | null = null
-): Promise<TopWalker[]> {
-  try {
-    const supabase = await getSupabaseServerClient();
-
-    const { data: rpcData, error: rpcError } = await supabase.rpc("get_top_walkers", {
-      limit_n: limit,
-      days,
-    });
-
-    if (rpcError && shouldFallbackToManualQuery(rpcError)) {
-      return await getTopWalkersFallback(limit, days);
-    }
-
-    if (rpcError) {
-      console.error("RPC error:", {
-        code: rpcError.code,
-        message: rpcError.message,
-        details: rpcError.details,
-        hint: rpcError.hint,
-      });
-      return [];
-    }
-
-    return rpcData || [];
-  } catch (error) {
-    console.error("getTopWalkers error:", error);
-    return [];
-  }
-}
-
 async function getTopWalkersFallback(
   limit: number,
   days: number | null
@@ -186,26 +198,19 @@ async function getTopWalkersFallback(
   try {
     const supabase = await getSupabaseServerClient();
 
-    let dateFilter = "";
+    let query = supabase.from("place_visits").select("user_id, place_id, visited_at");
+
     if (days !== null) {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - days);
-      dateFilter = cutoffDate.toISOString();
-    }
-
-    let query = supabase.from("place_visits").select("user_id, place_id");
-
-    if (dateFilter) {
-      query = query.gte("visited_at", dateFilter);
+      query = query.gte("visited_at", cutoffDate.toISOString());
     }
 
     const { data, error } = await query;
-
     if (error) {
-      console.error("Fallback query error:", error);
+      console.error("Fallback getTopWalkers query error:", error);
       return [];
     }
-
     if (!data) return [];
 
     const userStats = new Map<
@@ -217,7 +222,6 @@ async function getTopWalkersFallback(
       const userId = visit.user_id;
       const placeId = visit.place_id;
       const existing = userStats.get(userId);
-
       if (existing) {
         existing.visitCount++;
         existing.uniquePlaces.add(placeId);
@@ -243,39 +247,6 @@ async function getTopWalkersFallback(
   }
 }
 
-export async function getTopAuthors(
-  limit = 10,
-  days: number | null = null
-): Promise<TopAuthor[]> {
-  try {
-    const supabase = await getSupabaseServerClient();
-
-    const { data: rpcData, error: rpcError } = await supabase.rpc("get_top_authors", {
-      limit_n: limit,
-      days,
-    });
-
-    if (rpcError && shouldFallbackToManualQuery(rpcError)) {
-      return await getTopAuthorsFallback(limit, days);
-    }
-
-    if (rpcError) {
-      console.error("RPC error:", {
-        code: rpcError.code,
-        message: rpcError.message,
-        details: rpcError.details,
-        hint: rpcError.hint,
-      });
-      return [];
-    }
-
-    return rpcData || [];
-  } catch (error) {
-    console.error("getTopAuthors error:", error);
-    return [];
-  }
-}
-
 async function getTopAuthorsFallback(
   limit: number,
   days: number | null
@@ -283,68 +254,56 @@ async function getTopAuthorsFallback(
   try {
     const supabase = await getSupabaseServerClient();
 
-    let dateFilter = "";
-    if (days !== null) {
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - days);
-      dateFilter = cutoffDate.toISOString();
-    }
-
     const { data: places, error: placesError } = await supabase
       .from("places")
       .select("id, author_user_id");
 
     if (placesError || !places) {
-      console.error("Places query error:", placesError);
+      console.error("Fallback places query error:", placesError);
       return [];
     }
 
-    let visitsQuery = supabase.from("place_visits").select("place_id");
+    let visitsQuery = supabase
+      .from("place_visits")
+      .select("place_id, visited_at");
 
-    if (dateFilter) {
-      visitsQuery = visitsQuery.gte("visited_at", dateFilter);
+    if (days !== null) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      visitsQuery = visitsQuery.gte("visited_at", cutoffDate.toISOString());
     }
 
     const { data: visits, error: visitsError } = await visitsQuery;
-
     if (visitsError) {
-      console.error("Visits query error:", visitsError);
+      console.error("Fallback visits query error:", visitsError);
       return [];
     }
 
     const placeToAuthor = new Map<string, string>();
-    places.forEach((place) => {
-      placeToAuthor.set(place.id, place.author_user_id);
-    });
+    places.forEach((p: any) => placeToAuthor.set(p.id, p.author_user_id));
 
-    const authorStats = new Map<
-      string,
-      { placeIds: Set<string>; visitCount: number }
-    >();
+    const authorStats = new Map<string, { placeIds: Set<string>; visitCount: number }>();
 
-    visits?.forEach((visit: any) => {
-      const authorId = placeToAuthor.get(visit.place_id);
+    (visits ?? []).forEach((v: any) => {
+      const authorId = placeToAuthor.get(v.place_id);
       if (!authorId) return;
 
       const existing = authorStats.get(authorId);
       if (existing) {
         existing.visitCount++;
-        existing.placeIds.add(visit.place_id);
+        existing.placeIds.add(v.place_id);
       } else {
-        authorStats.set(authorId, {
-          placeIds: new Set([visit.place_id]),
-          visitCount: 1,
-        });
+        authorStats.set(authorId, { placeIds: new Set([v.place_id]), visitCount: 1 });
       }
     });
 
-    places.forEach((place) => {
-      const authorId = place.author_user_id;
+    // include authors with places but no visits
+    places.forEach((p: any) => {
+      const authorId = p.author_user_id;
       if (!authorStats.has(authorId)) {
-        authorStats.set(authorId, {
-          placeIds: new Set([place.id]),
-          visitCount: 0,
-        });
+        authorStats.set(authorId, { placeIds: new Set([p.id]), visitCount: 0 });
+      } else {
+        authorStats.get(authorId)!.placeIds.add(p.id);
       }
     });
 
@@ -354,16 +313,17 @@ async function getTopAuthorsFallback(
         place_count: stats.placeIds.size,
         total_visits: stats.visitCount,
       }))
-      .sort((a, b) => {
-        if (b.total_visits !== a.total_visits) return b.total_visits - a.total_visits;
-        return b.place_count - a.place_count;
-      })
+      .sort((a, b) => b.total_visits - a.total_visits || b.place_count - a.place_count)
       .slice(0, limit);
   } catch (error) {
     console.error("getTopAuthorsFallback error:", error);
     return [];
   }
 }
+
+/* -----------------------------
+   THUMBNAILS (bez created_at)
+------------------------------ */
 
 async function addThumbnailsToPlaces(places: TopPlace[]): Promise<TopPlace[]> {
   if (places.length === 0) return [];
@@ -372,12 +332,12 @@ async function addThumbnailsToPlaces(places: TopPlace[]): Promise<TopPlace[]> {
     const supabase = await getSupabaseServerClient();
     const placeIds = places.map((p) => p.place_id);
 
+    // Neřadíme podle created_at (může chybět). Vezmeme prostě první nalezenou fotku.
     const { data: media, error } = await supabase
       .from("place_media")
       .select("place_id, storage_path")
       .in("place_id", placeIds)
-      .eq("media_type", "photo")
-      .order("created_at", { ascending: true });
+      .eq("media_type", "photo");
 
     if (error || !media) {
       console.error("Media query error:", error);
@@ -399,10 +359,7 @@ async function addThumbnailsToPlaces(places: TopPlace[]): Promise<TopPlace[]> {
         .from("place-media")
         .getPublicUrl(storagePath);
 
-      return {
-        ...place,
-        thumbnail_url: urlData.publicUrl,
-      };
+      return { ...place, thumbnail_url: urlData.publicUrl };
     });
   } catch (error) {
     console.error("addThumbnailsToPlaces error:", error);
