@@ -10,6 +10,12 @@ import {
   getWalkerStats,
   getTopAuthoredPlaces,
 } from "@/lib/db/userStats";
+import {
+  getActiveSeason,
+  getActiveChallenges,
+  getMyChallengeProgress,
+} from "@/lib/db/challenges";
+import ChallengesCard from "@/components/leaderboard/ChallengesCard";
 
 export const dynamic = "force-dynamic";
 
@@ -48,12 +54,28 @@ export default async function MyProfilePage() {
   const userId = user.id;
 
   // Fetch profile and stats in parallel
-  const [profile, authorStats, walkerStats, topPlaces] = await Promise.all([
-    getProfileById(userId),
-    getAuthorStats(userId, 30),
-    getWalkerStats(userId, 30),
-    getTopAuthoredPlaces(userId, 10, null),
-  ]);
+  const [profile, authorStats, walkerStats, topPlaces, season, challenges] =
+    await Promise.all([
+      getProfileById(userId),
+      getAuthorStats(userId, 30),
+      getWalkerStats(userId, 30),
+      getTopAuthoredPlaces(userId, 10, null),
+      getActiveSeason(),
+      getActiveChallenges(),
+    ]);
+
+  // Fetch challenge progress (separate to handle potential errors)
+  let progress: Awaited<ReturnType<typeof getMyChallengeProgress>> = [];
+  try {
+    progress = await getMyChallengeProgress(userId);
+  } catch (error: any) {
+    console.error("Failed to fetch challenge progress:", {
+      code: error?.code,
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+    });
+  }
 
   const displayName = formatUserDisplay(userId, profile);
   const authorBadge = getAuthorBadge(
@@ -241,6 +263,27 @@ export default async function MyProfilePage() {
           </Card>
         </div>
       )}
+
+      {/* Season & Challenges */}
+      <div className="mt-8">
+        <h3 className="text-xl font-bold text-[var(--text-primary)] mb-4">
+          Sezóna & výzvy
+        </h3>
+        {season || challenges.length > 0 ? (
+          <ChallengesCard
+            season={season}
+            challenges={challenges}
+            progress={progress}
+            isAuthenticated={true}
+          />
+        ) : (
+          <Card>
+            <p className="text-center text-[var(--text-secondary)] py-4">
+              Aktuálně není aktivní sezóna.
+            </p>
+          </Card>
+        )}
+      </div>
     </Container>
   );
 }
