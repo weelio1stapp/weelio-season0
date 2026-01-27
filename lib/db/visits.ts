@@ -19,7 +19,7 @@ export type PlaceStats = {
 export async function markVisited(
   placeId: string,
   source: VisitSource = "button"
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; isDuplicate?: boolean; isUnauthorized?: boolean }> {
   try {
     const supabase = await getSupabaseServerClient();
 
@@ -30,7 +30,7 @@ export async function markVisited(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { success: false, error: "Musíte být přihlášeni" };
+      return { success: false, error: "Musíte být přihlášeni", isUnauthorized: true };
     }
 
     // Insert visit (unique constraint handles duplicates)
@@ -45,13 +45,20 @@ export async function markVisited(
       // PostgreSQL unique constraint violation code
       if (insertError.code === "23505") {
         // Duplicate - not an error for the user
-        return { success: true };
+        return { success: true, isDuplicate: true };
       }
+      console.error("markVisited DB error:", {
+        code: insertError.code,
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+      });
       return { success: false, error: insertError.message };
     }
 
     return { success: true };
   } catch (error) {
+    console.error("markVisited exception:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Neznámá chyba",

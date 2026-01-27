@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/toast";
 
 interface VisitedButtonProps {
   placeId: string;
@@ -13,9 +14,9 @@ export default function VisitedButton({
   alreadyVisited: initialVisited,
 }: VisitedButtonProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [visited, setVisited] = useState(initialVisited);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Format today's date for display
   const todayFormatted = new Date().toLocaleDateString("cs-CZ", {
@@ -28,7 +29,6 @@ export default function VisitedButton({
     if (visited || pending) return;
 
     setPending(true);
-    setError(null);
 
     try {
       const response = await fetch("/api/visits", {
@@ -44,16 +44,33 @@ export default function VisitedButton({
 
       const data = await response.json();
 
-      if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Nepodařilo se uložit návštěvu");
+      // Handle different response codes
+      if (response.status === 409 || data.code === "ALREADY_VISITED_TODAY") {
+        // Already visited today
+        showToast("Dnes už máš zapsáno 🙃", "info");
+        setVisited(true);
+        return;
       }
 
-      // Success - update state and refresh
+      if (response.status === 401 || data.code === "UNAUTHORIZED") {
+        // Not authenticated
+        showToast("Musíš být přihlášen", "error");
+        return;
+      }
+
+      if (!response.ok || !data.ok) {
+        // Other error
+        showToast("Nepodařilo se zapsat návštěvu", "error");
+        return;
+      }
+
+      // Success
+      showToast("Návštěva zaznamenána ✅", "success");
       setVisited(true);
       router.refresh();
     } catch (err) {
       console.error("Failed to mark visited:", err);
-      setError(err instanceof Error ? err.message : "Nastala chyba");
+      showToast("Nepodařilo se zapsat návštěvu", "error");
     } finally {
       setPending(false);
     }
@@ -98,18 +115,12 @@ export default function VisitedButton({
               ></path>
             </svg>
           )}
-          {visited ? "✓ Dnes už máš hotovo" : "Byl jsem tady"}
+          {pending ? "Zaznamenávám…" : visited ? "✓ Dnes už máš hotovo" : "Byl jsem tady"}
         </span>
         {visited && (
           <span className="text-xs opacity-70">{todayFormatted}</span>
         )}
       </button>
-
-      {error && (
-        <p className="mt-2 text-sm text-red-600">
-          {error}
-        </p>
-      )}
     </div>
   );
 }
