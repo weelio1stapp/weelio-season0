@@ -6,6 +6,7 @@ import TopAuthorsPreview from "@/components/leaderboard/TopAuthorsPreview";
 import TopPlacesPreview from "@/components/leaderboard/TopPlacesPreview";
 import TopWalkersPreview from "@/components/leaderboard/TopWalkersPreview";
 import { getTopPlaces, getTopAuthors, getTopWalkers } from "@/lib/db/leaderboard";
+import { getProfilesByIds } from "@/lib/db/profiles";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,14 @@ export default async function LeaderboardPage() {
     getTopAuthors(3, 30),
     getTopWalkers(3, 30),
   ]);
+
+  // Fetch profiles for all users in leaderboards
+  const userIds = [
+    ...topAuthors.map((a) => a.user_id),
+    ...topWalkers.map((w) => w.user_id),
+  ];
+  const profiles = await getProfilesByIds(userIds);
+
   return (
     <Container>
       <PageHeader
@@ -31,7 +40,7 @@ export default async function LeaderboardPage() {
           href="/leaderboard/authors"
           icon="✍️"
         >
-          <TopAuthorsPreview authors={topAuthors} />
+          <TopAuthorsPreview authors={topAuthors} profiles={profiles} />
         </LeaderboardCard>
 
         {/* Top Places */}
@@ -51,7 +60,7 @@ export default async function LeaderboardPage() {
           href="/leaderboard/walkers"
           icon="🚶"
         >
-          <TopWalkersPreview walkers={topWalkers} />
+          <TopWalkersPreview walkers={topWalkers} profiles={profiles} />
         </LeaderboardCard>
 
         {/* Challenges/Seasons - Coming Soon */}

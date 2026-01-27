@@ -3,16 +3,9 @@ import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import Link from "next/link";
 import { getTopWalkers } from "@/lib/db/leaderboard";
+import { getProfilesByIds, formatUserDisplay } from "@/lib/db/profiles";
 
 export const dynamic = "force-dynamic";
-
-/**
- * Shorten user ID for display (e.g., "abc123...xyz789")
- */
-function shortenUserId(userId: string): string {
-  if (userId.length <= 12) return userId;
-  return `${userId.slice(0, 6)}...${userId.slice(-6)}`;
-}
 
 /**
  * Get badge based on visit count
@@ -26,6 +19,10 @@ function getBadge(visitCount: number, uniquePlaces: number): string {
 
 export default async function WalkersLeaderboardPage() {
   const topWalkers = await getTopWalkers(10, 30);
+
+  // Fetch profiles for all walkers
+  const userIds = topWalkers.map((w) => w.user_id);
+  const profiles = await getProfilesByIds(userIds);
 
   return (
     <Container>
@@ -54,9 +51,13 @@ export default async function WalkersLeaderboardPage() {
           <div className="space-y-4">
             {topWalkers.map((walker, index) => {
               const badge = getBadge(walker.visit_count, walker.unique_places);
+              const profile = profiles.get(walker.user_id);
+              const displayName = formatUserDisplay(walker.user_id, profile);
+
               return (
-                <div
+                <Link
                   key={walker.user_id}
+                  href={`/u/${walker.user_id}`}
                   className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-[var(--accent-primary)]/20"
                 >
                   {/* Rank Badge */}
@@ -68,14 +69,22 @@ export default async function WalkersLeaderboardPage() {
                   </div>
 
                   {/* User Avatar */}
-                  <div className="flex-shrink-0 w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-2xl ring-2 ring-gray-200">
-                    🚶
-                  </div>
+                  {profile?.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt={displayName}
+                      className="flex-shrink-0 w-14 h-14 rounded-full object-cover ring-2 ring-gray-200"
+                    />
+                  ) : (
+                    <div className="flex-shrink-0 w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-2xl ring-2 ring-gray-200">
+                      🚶
+                    </div>
+                  )}
 
                   {/* Walker info */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg text-[var(--text-primary)] font-mono truncate">
-                      User {shortenUserId(walker.user_id)}
+                    <h3 className="font-semibold text-lg text-[var(--text-primary)] truncate">
+                      {displayName}
                     </h3>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className="px-2 py-0.5 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] rounded-full text-xs font-medium">
@@ -96,7 +105,7 @@ export default async function WalkersLeaderboardPage() {
                       {walker.visit_count === 1 ? "návštěva" : walker.visit_count < 5 ? "návštěvy" : "návštěv"}
                     </p>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
@@ -107,10 +116,6 @@ export default async function WalkersLeaderboardPage() {
       <div className="mt-8 text-center">
         <p className="text-[var(--text-secondary)]">
           Chodci jsou seřazeni podle celkového počtu návštěv za posledních 30 dní.
-          <br />
-          <span className="text-sm">
-            Profily uživatelů budou přidány v budoucí verzi.
-          </span>
         </p>
       </div>
     </Container>
