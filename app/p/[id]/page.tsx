@@ -1,12 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { fetchPlaceById } from "@/lib/db/places";
+import { fetchPlaceById, getNearbyPlaces } from "@/lib/db/places";
 import { PLACE_TYPE_LABELS } from "@/lib/placesFilters";
 import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
 import { hasVisitedToday, getPlaceStats } from "@/lib/db/visits";
+import { getActiveChallenges, getMyChallengeProgress } from "@/lib/db/challenges";
+import { getTopWalkers, getTopAuthors } from "@/lib/db/leaderboard";
+import { getWalkerRank, getAuthorRank, formatRank } from "@/lib/utils/rank";
 import PlaceGallery from "@/components/PlaceGallery";
 import PlaceAuthorActions from "@/components/PlaceAuthorActions";
 import VisitedButton from "@/components/VisitedButton";
+import NextStepsSection from "@/components/place/NextStepsSection";
 
 /**
  * Format coordinate for Mapy.com route planner
@@ -66,6 +70,39 @@ export default async function PlaceDetailPage({
   // Load place statistics
   const stats = await getPlaceStats(place.id);
 
+  // Load next steps data
+  const [nearbyPlaces, activeChallenges, topWalkers, topAuthors] =
+    await Promise.all([
+      getNearbyPlaces(place.area, place.id, 3),
+      getActiveChallenges(),
+      currentUserId ? getTopWalkers(100, 30) : Promise.resolve([]),
+      currentUserId ? getTopAuthors(100, 30) : Promise.resolve([]),
+    ]);
+
+  // Load challenge progress if authenticated
+  let challengeProgress: Awaited<ReturnType<typeof getMyChallengeProgress>> = [];
+  if (currentUserId) {
+    try {
+      challengeProgress = await getMyChallengeProgress(currentUserId);
+    } catch (error: any) {
+      console.error("Failed to fetch challenge progress:", {
+        code: error?.code,
+        message: error?.message,
+      });
+    }
+  }
+
+  // Calculate user ranks if authenticated
+  let userRanks = null;
+  if (currentUserId) {
+    const walkerRank = getWalkerRank(currentUserId, topWalkers);
+    const authorRank = getAuthorRank(currentUserId, topAuthors);
+    userRanks = {
+      walkerRank: formatRank(walkerRank, 100),
+      authorRank: formatRank(authorRank, 100),
+    };
+  }
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex items-center justify-between gap-4 mb-4">
@@ -116,6 +153,15 @@ export default async function PlaceDetailPage({
           <VisitedButton placeId={place.id} alreadyVisited={alreadyVisited} />
         </div>
       )}
+
+      {/* Next Steps Section */}
+      <NextStepsSection
+        nearbyPlaces={nearbyPlaces}
+        challenges={activeChallenges}
+        challengeProgress={challengeProgress}
+        userRanks={userRanks}
+        isAuthenticated={!!currentUserId}
+      />
 
       {/* Statistics */}
       <div className="mt-6 rounded-2xl border p-6">

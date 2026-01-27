@@ -155,3 +155,33 @@ export async function fetchPlaceById(id: string): Promise<PlaceRow | null> {
   if (error) throw new Error(error.message);
   return (data ?? null) as PlaceRow | null;
 }
+
+/**
+ * Fetch nearby places from the same area (excluding current place)
+ */
+export async function getNearbyPlaces(
+  area: string,
+  currentPlaceId: string,
+  limit = 3
+): Promise<Array<{ id: string; name: string; type: PlaceType; area: string; cover_public_url: string | null }>> {
+  try {
+    const supabase = await getSupabaseServerClient();
+
+    const { data, error } = await supabase
+      .from("places")
+      .select("id, name, type, area, cover_public_url")
+      .eq("area", area)
+      .neq("id", currentPlaceId)
+      .limit(limit);
+
+    if (error) {
+      console.error("getNearbyPlaces error:", error);
+      return [];
+    }
+
+    return data ?? [];
+  } catch (error) {
+    console.error("getNearbyPlaces exception:", error);
+    return [];
+  }
+}
