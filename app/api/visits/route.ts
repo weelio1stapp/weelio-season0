@@ -8,6 +8,38 @@ type RequestBody = {
   source?: VisitSource;
 };
 
+/**
+ * Get current user progress state
+ */
+async function getCurrentUserProgress() {
+  try {
+    const supabase = await getSupabaseServerClient();
+
+    // Ensure progress row exists first
+    await supabase.rpc("ensure_user_progress");
+
+    const { data, error } = await supabase
+      .from("user_progress")
+      .select("xp, streak_weeks, best_streak_weeks")
+      .single();
+
+    if (error) {
+      console.error("getCurrentUserProgress error:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("getCurrentUserProgress exception:", error);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: RequestBody = await request.json();
@@ -41,8 +73,18 @@ export async function POST(request: NextRequest) {
 
     // Handle duplicate (already visited today)
     if (result.isDuplicate) {
+      // Get current progress state for duplicate visit
+      const currentProgress = await getCurrentUserProgress();
+
       return NextResponse.json(
-        { ok: false, code: "ALREADY_VISITED_TODAY" },
+        {
+          ok: false,
+          code: "ALREADY_VISITED_TODAY",
+          xp_delta: 0,
+          xp_total: currentProgress?.xp ?? 0,
+          streak_weeks: currentProgress?.streak_weeks ?? 0,
+          best_streak_weeks: currentProgress?.best_streak_weeks ?? 0,
+        },
         { status: 409 }
       );
     }
@@ -59,33 +101,57 @@ export async function POST(request: NextRequest) {
     }
 
     // Success - apply XP and streak
-    let xpData = null;
-    try {
-      const supabase = await getSupabaseServerClient();
-      const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const supabase = await getSupabaseServerClient();
 
-      const { data: rpcData, error: rpcError } = await supabase.rpc(
-        "apply_visit_xp_and_streak",
-        {
-          p_place_id: body.placeId,
-          p_visit_on: today,
-        }
-      );
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split("T")[0];
 
-      if (rpcError) {
-        console.error("apply_visit_xp_and_streak error:", {
-          code: rpcError.code,
-          message: rpcError.message,
-          details: rpcError.details,
-          hint: rpcError.hint,
-        });
-      } else if (rpcData && rpcData.length > 0) {
-        xpData = rpcData[0];
+    console.log("Calling apply_visit_xp_and_streak with:", {
+      p_place_id: body.placeId,
+      p_visit_on: today,
+    });
+
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      "apply_visit_xp_and_streak",
+      {
+        p_place_id: body.placeId,
+        p_visit_on: today,
       }
-    } catch (xpError) {
-      console.error("XP/streak calculation error:", xpError);
-      // Don't fail the request if XP calculation fails
+    );
+
+    if (rpcError) {
+      console.error("apply_visit_xp_and_streak RPC failed:", {
+        code: rpcError.code,
+        message: rpcError.message,
+        details: rpcError.details,
+        hint: rpcError.hint,
+      });
+
+      // Fallback to current progress
+      const currentProgress = await getCurrentUserProgress();
+
+      return NextResponse.json({
+        ok: true,
+        xp_delta: 0,
+        xp_total: currentProgress?.xp ?? 0,
+        streak_weeks: currentProgress?.streak_weeks ?? 0,
+        best_streak_weeks: currentProgress?.best_streak_weeks ?? 0,
+        warning: "XP calculation failed, showing current state",
+      });
     }
+
+    console.log("RPC response:", rpcData);
+
+    // Extract XP data from RPC response
+    const xpData =
+      rpcData && rpcData.length > 0
+        ? rpcData[0]
+        : {
+            xp_delta: 0,
+            xp_total: 0,
+            streak_weeks: 0,
+            best_streak_weeks: 0,
+          };
 
     // Revalidate relevant paths
     try {
@@ -99,10 +165,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      xp_delta: xpData?.xp_delta ?? 0,
-      xp_total: xpData?.xp_total ?? 0,
-      streak_weeks: xpData?.streak_weeks ?? 0,
-      best_streak_weeks: xpData?.best_streak_weeks ?? 0,
+      xp_delta: xpData.xp_delta,
+      xp_total: xpData.xp_total,
+      streak_weeks: xpData.streak_weeks,
+      best_streak_weeks: xpData.best_streak_weeks,
     });
   } catch (error) {
     console.error("POST /api/visits error:", error);
