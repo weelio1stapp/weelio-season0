@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserClient";
 import Button from "./Button";
 import { useAuth } from "./AuthProvider";
+import Link from "next/link";
 
 export default function AuthStatus() {
   const { user, loading } = useAuth();
@@ -52,6 +53,12 @@ export default function AuthStatus() {
         <span className="text-sm text-[var(--text-secondary)] hidden md:inline">
           {displayEmail}
         </span>
+        <Link
+          href="/me"
+          className="text-sm hover:text-[var(--accent-primary)] transition-colors"
+        >
+          Můj profil
+        </Link>
         <Button onClick={handleSignOut} variant="outline" className="text-sm py-1 px-3">
           Odhlásit
         </Button>
