@@ -34,53 +34,71 @@ export default async function PlacesLeaderboardPage() {
       ) : (
         <Card>
           <div className="space-y-4">
-            {topPlaces.map((place, index) => (
-              <Link
-                key={place.place_id}
-                href={`/p/${place.place_id}`}
-                className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                {/* Rank */}
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent-primary)] to-[var(--color-earth)] flex items-center justify-center text-white font-bold text-lg">
-                  {index + 1}
-                </div>
+            {topPlaces.map((place, index) => {
+              const isTrending = place.visit_count >= 10;
+              const isTop3 = index < 3;
 
-                {/* Thumbnail */}
-                {place.thumbnail_url ? (
-                  <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden">
-                    <img
-                      src={place.thumbnail_url}
-                      alt={place.place_name}
-                      className="w-full h-full object-cover"
-                    />
+              return (
+                <Link
+                  key={place.place_id}
+                  href={`/p/${place.place_id}`}
+                  className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-[var(--accent-primary)]/20"
+                >
+                  {/* Rank Badge */}
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent-primary)] to-[var(--color-earth)] flex items-center justify-center text-white font-bold text-lg">
+                    {index === 0 && "👑"}
+                    {index === 1 && "🥈"}
+                    {index === 2 && "🥉"}
+                    {index > 2 && index + 1}
                   </div>
-                ) : (
-                  <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-2xl">
-                    📍
-                  </div>
-                )}
 
-                {/* Place info */}
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-lg text-[var(--text-primary)] truncate">
-                    {place.place_name}
-                  </h3>
-                  <div className="flex items-center gap-3 mt-1 text-sm text-[var(--text-secondary)]">
-                    <span>{PLACE_TYPE_LABELS[place.type]}</span>
-                    <span>•</span>
-                    <span>{place.area}</span>
-                  </div>
-                </div>
+                  {/* Thumbnail */}
+                  {place.thumbnail_url ? (
+                    <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden ring-2 ring-gray-200">
+                      <img
+                        src={place.thumbnail_url}
+                        alt={place.place_name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-2xl">
+                      📍
+                    </div>
+                  )}
 
-                {/* Visits */}
-                <div className="text-right flex-shrink-0">
-                  <p className="text-2xl font-bold text-[var(--accent-primary)]">
-                    {place.visit_count}
-                  </p>
-                  <p className="text-sm text-[var(--text-secondary)]">návštěv</p>
-                </div>
-              </Link>
-            ))}
+                  {/* Place info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-lg text-[var(--text-primary)] truncate">
+                        {place.place_name}
+                      </h3>
+                      {isTrending && (
+                        <span className="flex-shrink-0 text-sm" title="Trendy místo">
+                          🔥
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 text-sm text-[var(--text-secondary)]">
+                      <span className="px-2 py-0.5 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] rounded-full text-xs font-medium">
+                        {PLACE_TYPE_LABELS[place.type]}
+                      </span>
+                      <span>{place.area}</span>
+                    </div>
+                  </div>
+
+                  {/* Visits */}
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-2xl font-bold text-[var(--accent-primary)]">
+                      {place.visit_count}
+                    </p>
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      {place.visit_count === 1 ? "návštěva" : place.visit_count < 5 ? "návštěvy" : "návštěv"}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </Card>
       )}

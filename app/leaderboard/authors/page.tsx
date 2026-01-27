@@ -53,12 +53,14 @@ export default async function AuthorsLeaderboardPage() {
           <div className="space-y-4">
             {topAuthors.map((author, index) => {
               const badge = getBadge(author.place_count, author.total_visits);
+              const isHighEngagement = author.total_visits >= 50;
+
               return (
                 <div
                   key={author.user_id}
-                  className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-[var(--accent-primary)]/20"
                 >
-                  {/* Rank */}
+                  {/* Rank Badge */}
                   <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent-primary)] to-[var(--color-earth)] flex items-center justify-center text-white font-bold text-lg">
                     {index === 0 && "👑"}
                     {index === 1 && "🥈"}
@@ -66,16 +68,30 @@ export default async function AuthorsLeaderboardPage() {
                     {index > 2 && index + 1}
                   </div>
 
+                  {/* Author Avatar */}
+                  <div className="flex-shrink-0 w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center text-2xl ring-2 ring-gray-200">
+                    ✍️
+                  </div>
+
                   {/* Author info */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg text-[var(--text-primary)] font-mono truncate">
-                      User {shortenUserId(author.user_id)}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1 text-sm text-[var(--text-secondary)]">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-lg text-[var(--text-primary)] font-mono truncate">
+                        User {shortenUserId(author.user_id)}
+                      </h3>
+                      {isHighEngagement && (
+                        <span className="flex-shrink-0 text-sm" title="Vysoký engagement">
+                          ⭐
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className="px-2 py-0.5 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] rounded-full text-xs font-medium">
                         {badge}
                       </span>
-                      <span>• {author.place_count} míst</span>
+                      <span className="text-sm text-[var(--text-secondary)]">
+                        {author.place_count} {author.place_count === 1 ? "místo" : author.place_count < 5 ? "místa" : "míst"}
+                      </span>
                     </div>
                   </div>
 
@@ -84,7 +100,9 @@ export default async function AuthorsLeaderboardPage() {
                     <p className="text-2xl font-bold text-[var(--accent-primary)]">
                       {author.total_visits.toLocaleString()}
                     </p>
-                    <p className="text-sm text-[var(--text-secondary)]">návštěv</p>
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      {author.total_visits === 1 ? "návštěva" : author.total_visits < 5 ? "návštěvy" : "návštěv"}
+                    </p>
                   </div>
                 </div>
               );

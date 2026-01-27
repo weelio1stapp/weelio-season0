@@ -57,9 +57,9 @@ export default async function WalkersLeaderboardPage() {
               return (
                 <div
                   key={walker.user_id}
-                  className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-[var(--accent-primary)]/20"
                 >
-                  {/* Rank */}
+                  {/* Rank Badge */}
                   <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent-primary)] to-[var(--color-earth)] flex items-center justify-center text-white font-bold text-lg">
                     {index === 0 && "👑"}
                     {index === 1 && "🥈"}
@@ -67,16 +67,23 @@ export default async function WalkersLeaderboardPage() {
                     {index > 2 && index + 1}
                   </div>
 
+                  {/* User Avatar */}
+                  <div className="flex-shrink-0 w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-2xl ring-2 ring-gray-200">
+                    🚶
+                  </div>
+
                   {/* Walker info */}
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-lg text-[var(--text-primary)] font-mono truncate">
                       User {shortenUserId(walker.user_id)}
                     </h3>
-                    <div className="flex items-center gap-2 mt-1 text-sm text-[var(--text-secondary)]">
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className="px-2 py-0.5 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] rounded-full text-xs font-medium">
                         {badge}
                       </span>
-                      <span>• {walker.unique_places} unikátních míst</span>
+                      <span className="text-sm text-[var(--text-secondary)]">
+                        {walker.unique_places} {walker.unique_places === 1 ? "místo" : walker.unique_places < 5 ? "místa" : "míst"}
+                      </span>
                     </div>
                   </div>
 
@@ -85,7 +92,9 @@ export default async function WalkersLeaderboardPage() {
                     <p className="text-2xl font-bold text-[var(--accent-primary)]">
                       {walker.visit_count}
                     </p>
-                    <p className="text-sm text-[var(--text-secondary)]">návštěv</p>
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      {walker.visit_count === 1 ? "návštěva" : walker.visit_count < 5 ? "návštěvy" : "návštěv"}
+                    </p>
                   </div>
                 </div>
               );

@@ -23,13 +23,18 @@ export default function TopAuthorsPreview({ authors }: TopAuthorsPreviewProps) {
       {authors.map((author, index) => (
         <div
           key={author.user_id}
-          className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
         >
-          {/* Rank */}
-          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-[var(--accent-primary)] to-[var(--color-earth)] flex items-center justify-center text-white font-bold">
+          {/* Rank Badge */}
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[var(--accent-primary)] to-[var(--color-earth)] flex items-center justify-center text-white font-bold text-sm">
             {index === 0 && "👑"}
             {index === 1 && "🥈"}
             {index === 2 && "🥉"}
+          </div>
+
+          {/* Author Avatar/Icon */}
+          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center text-xl">
+            ✍️
           </div>
 
           {/* Name & Stats */}
@@ -37,13 +42,13 @@ export default function TopAuthorsPreview({ authors }: TopAuthorsPreviewProps) {
             <h3 className="font-semibold text-[var(--text-primary)] truncate font-mono text-sm">
               User {shortenUserId(author.user_id)}
             </h3>
-            <p className="text-sm text-[var(--text-secondary)]">
-              {author.place_count} míst
+            <p className="text-xs text-[var(--text-secondary)]">
+              {author.place_count} {author.place_count === 1 ? "místo" : author.place_count < 5 ? "místa" : "míst"}
             </p>
           </div>
 
           {/* Visits */}
-          <div className="text-right">
+          <div className="text-right flex-shrink-0">
             <p className="text-lg font-bold text-[var(--accent-primary)]">
               {author.total_visits}
             </p>
