@@ -64,8 +64,20 @@ export default function VisitedButton({
         return;
       }
 
-      // Success
-      showToast("Návštěva zaznamenána ✅", "success");
+      // Success - show XP feedback
+      const xpDelta = data.xp_delta ?? 0;
+      const streakWeeks = data.streak_weeks ?? 0;
+      const bestStreakWeeks = data.best_streak_weeks ?? 0;
+
+      if (xpDelta > 0) {
+        showToast(
+          `+${xpDelta} XP • streak ${streakWeeks} 🔥 (best ${bestStreakWeeks})`,
+          "success"
+        );
+      } else {
+        showToast("Návštěva zaznamenána ✅", "success");
+      }
+
       setVisited(true);
       router.refresh();
     } catch (err) {

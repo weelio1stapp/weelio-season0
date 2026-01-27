@@ -15,6 +15,7 @@ import {
   getActiveChallenges,
   getMyChallengeProgress,
 } from "@/lib/db/challenges";
+import { getUserProgress } from "@/lib/db/progress";
 import ChallengesCard from "@/components/leaderboard/ChallengesCard";
 
 export const dynamic = "force-dynamic";
@@ -54,15 +55,23 @@ export default async function MyProfilePage() {
   const userId = user.id;
 
   // Fetch profile and stats in parallel
-  const [profile, authorStats, walkerStats, topPlaces, season, challenges] =
-    await Promise.all([
-      getProfileById(userId),
-      getAuthorStats(userId, 30),
-      getWalkerStats(userId, 30),
-      getTopAuthoredPlaces(userId, 10, null),
-      getActiveSeason(),
-      getActiveChallenges(),
-    ]);
+  const [
+    profile,
+    authorStats,
+    walkerStats,
+    topPlaces,
+    season,
+    challenges,
+    userProgress,
+  ] = await Promise.all([
+    getProfileById(userId),
+    getAuthorStats(userId, 30),
+    getWalkerStats(userId, 30),
+    getTopAuthoredPlaces(userId, 10, null),
+    getActiveSeason(),
+    getActiveChallenges(),
+    getUserProgress(),
+  ]);
 
   // Fetch challenge progress (separate to handle potential errors)
   let progress: Awaited<ReturnType<typeof getMyChallengeProgress>> = [];
@@ -142,6 +151,80 @@ export default async function MyProfilePage() {
           </div>
         </div>
       </Card>
+
+      {/* XP & Streak Card */}
+      {userProgress && (
+        <div className="mt-8">
+          <Card>
+            <h3 className="text-xl font-bold text-[var(--text-primary)] mb-4">
+              ⚡ XP & Streak
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* XP */}
+              <div className="text-center p-4 rounded-lg bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-200">
+                <div className="text-4xl mb-2">💎</div>
+                <p className="text-sm text-[var(--text-secondary)] mb-1">
+                  Celkem XP
+                </p>
+                <p className="text-3xl font-bold text-[var(--accent-primary)]">
+                  {userProgress.xp.toLocaleString()}
+                </p>
+              </div>
+
+              {/* Current Streak */}
+              <div className="text-center p-4 rounded-lg bg-gradient-to-br from-red-50 to-orange-50 border border-red-200">
+                <div className="text-4xl mb-2">🔥</div>
+                <p className="text-sm text-[var(--text-secondary)] mb-1">
+                  Aktuální streak
+                </p>
+                <p className="text-3xl font-bold text-[var(--accent-primary)]">
+                  {userProgress.streak_weeks}
+                </p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  {userProgress.streak_weeks === 1
+                    ? "týden"
+                    : userProgress.streak_weeks < 5
+                    ? "týdny"
+                    : "týdnů"}
+                </p>
+              </div>
+
+              {/* Best Streak */}
+              <div className="text-center p-4 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200">
+                <div className="text-4xl mb-2">🏆</div>
+                <p className="text-sm text-[var(--text-secondary)] mb-1">
+                  Nejlepší streak
+                </p>
+                <p className="text-3xl font-bold text-[var(--accent-primary)]">
+                  {userProgress.best_streak_weeks}
+                </p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  {userProgress.best_streak_weeks === 1
+                    ? "týden"
+                    : userProgress.best_streak_weeks < 5
+                    ? "týdny"
+                    : "týdnů"}
+                </p>
+              </div>
+            </div>
+
+            {userProgress.last_visit_on && (
+              <p className="text-xs text-[var(--text-secondary)] text-center mt-4">
+                Poslední návštěva:{" "}
+                {new Date(userProgress.last_visit_on).toLocaleDateString(
+                  "cs-CZ",
+                  {
+                    day: "numeric",
+                    month: "numeric",
+                    year: "numeric",
+                  }
+                )}
+              </p>
+            )}
+          </Card>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
