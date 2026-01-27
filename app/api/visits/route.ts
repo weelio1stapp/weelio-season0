@@ -1,180 +1,136 @@
-import { NextRequest, NextResponse } from "next/server";
-import { markVisited, type VisitSource } from "@/lib/db/visits";
-import { revalidatePath } from "next/cache";
+import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
 
-type RequestBody = {
-  placeId: string;
-  source?: VisitSource;
-};
+type Body = { placeId: string; source?: string };
 
-/**
- * Get current user progress state
- */
-async function getCurrentUserProgress() {
-  try {
-    const supabase = await getSupabaseServerClient();
-
-    // Ensure progress row exists first
-    await supabase.rpc("ensure_user_progress");
-
-    const { data, error } = await supabase
-      .from("user_progress")
-      .select("xp, streak_weeks, best_streak_weeks")
-      .single();
-
-    if (error) {
-      console.error("getCurrentUserProgress error:", {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-      });
-      return null;
-    }
-
-    return data;
-  } catch (error) {
-    console.error("getCurrentUserProgress exception:", error);
-    return null;
+async function getCurrentUserProgress(supabase: any) {
+  // Ensure row exists (ignore errors, but log)
+  const { error: ensureErr } = await supabase.rpc("ensure_user_progress");
+  if (ensureErr) {
+    console.error("ensure_user_progress error:", {
+      code: ensureErr.code,
+      message: ensureErr.message,
+      details: ensureErr.details,
+      hint: ensureErr.hint,
+    });
   }
+
+  const { data, error } = await supabase
+    .from("user_progress")
+    .select("xp, streak_weeks, best_streak_weeks")
+    .single();
+
+  if (error) {
+    console.error("user_progress select error:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    return { xp: 0, streak_weeks: 0, best_streak_weeks: 0 };
+  }
+
+  return {
+    xp: data?.xp ?? 0,
+    streak_weeks: data?.streak_weeks ?? 0,
+    best_streak_weeks: data?.best_streak_weeks ?? 0,
+  };
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const body: RequestBody = await request.json();
+export async function POST(req: Request) {
+  const supabase = await getSupabaseServerClient();
 
-    if (!body.placeId) {
-      return NextResponse.json(
-        { ok: false, code: "INVALID_REQUEST", error: "placeId je povinné pole" },
-        { status: 400 }
-      );
-    }
-
-    const source = body.source || "button";
-
-    // Validate source
-    if (source !== "button" && source !== "qr") {
-      return NextResponse.json(
-        { ok: false, code: "INVALID_REQUEST", error: "source musí být 'button' nebo 'qr'" },
-        { status: 400 }
-      );
-    }
-
-    const result = await markVisited(body.placeId, source);
-
-    // Handle unauthorized
-    if (result.isUnauthorized) {
-      return NextResponse.json(
-        { ok: false, code: "UNAUTHORIZED" },
-        { status: 401 }
-      );
-    }
-
-    // Handle duplicate (already visited today)
-    if (result.isDuplicate) {
-      // Get current progress state for duplicate visit
-      const currentProgress = await getCurrentUserProgress();
-
-      return NextResponse.json(
-        {
-          ok: false,
-          code: "ALREADY_VISITED_TODAY",
-          xp_delta: 0,
-          xp_total: currentProgress?.xp ?? 0,
-          streak_weeks: currentProgress?.streak_weeks ?? 0,
-          best_streak_weeks: currentProgress?.best_streak_weeks ?? 0,
-        },
-        { status: 409 }
-      );
-    }
-
-    // Handle other errors
-    if (!result.success) {
-      console.error("markVisited failed:", {
-        error: result.error,
-      });
-      return NextResponse.json(
-        { ok: false, code: "UNKNOWN", error: result.error },
-        { status: 500 }
-      );
-    }
-
-    // Success - apply XP and streak
-    const supabase = await getSupabaseServerClient();
-
-    // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().split("T")[0];
-
-    console.log("Calling apply_visit_xp_and_streak with:", {
-      p_place_id: body.placeId,
-      p_visit_on: today,
+  // Auth check (must be real user, not anon)
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  if (userErr) {
+    console.error("auth.getUser error:", {
+      message: userErr.message,
     });
+  }
 
-    const { data: rpcData, error: rpcError } = await supabase.rpc(
-      "apply_visit_xp_and_streak",
-      {
-        p_place_id: body.placeId,
-        p_visit_on: today,
-      }
-    );
+  const user = userData?.user;
+  if (!user) {
+    return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
+  }
 
-    if (rpcError) {
-      console.error("apply_visit_xp_and_streak RPC failed:", {
-        code: rpcError.code,
-        message: rpcError.message,
-        details: rpcError.details,
-        hint: rpcError.hint,
-      });
+  let body: Body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
+  }
 
-      // Fallback to current progress
-      const currentProgress = await getCurrentUserProgress();
+  const placeId = body.placeId;
+  const source = body.source ?? "button";
+  if (!placeId) {
+    return NextResponse.json({ ok: false, error: "Missing placeId" }, { status: 400 });
+  }
 
-      return NextResponse.json({
-        ok: true,
-        xp_delta: 0,
-        xp_total: currentProgress?.xp ?? 0,
-        streak_weeks: currentProgress?.streak_weeks ?? 0,
-        best_streak_weeks: currentProgress?.best_streak_weeks ?? 0,
-        warning: "XP calculation failed, showing current state",
-      });
-    }
+  // 1) Insert visit (unique constraint should prevent duplicates today)
+  const { error: insertErr } = await supabase.from("place_visits").insert({
+    place_id: placeId,
+    user_id: user.id,
+    source,
+  });
 
-    console.log("RPC response:", rpcData);
-
-    // Extract XP data from RPC response
-    const xpData =
-      rpcData && rpcData.length > 0
-        ? rpcData[0]
-        : {
-            xp_delta: 0,
-            xp_total: 0,
-            streak_weeks: 0,
-            best_streak_weeks: 0,
-          };
-
-    // Revalidate relevant paths
-    try {
-      revalidatePath("/leaderboard");
-      revalidatePath("/me");
-      revalidatePath(`/p/${body.placeId}`);
-    } catch (revalidateError) {
-      console.error("Revalidation error:", revalidateError);
-      // Don't fail the request if revalidation fails
-    }
-
+  // Duplicate visit today -> return current progress (no xp delta)
+  if (insertErr?.code === "23505") {
+    const cur = await getCurrentUserProgress(supabase);
     return NextResponse.json({
       ok: true,
-      xp_delta: xpData.xp_delta,
-      xp_total: xpData.xp_total,
-      streak_weeks: xpData.streak_weeks,
-      best_streak_weeks: xpData.best_streak_weeks,
+      xp_delta: 0,
+      xp_total: cur.xp,
+      streak_weeks: cur.streak_weeks,
+      best_streak_weeks: cur.best_streak_weeks,
+      info: "Already visited today",
     });
-  } catch (error) {
-    console.error("POST /api/visits error:", error);
-    return NextResponse.json(
-      { ok: false, code: "UNKNOWN", error: "Interní chyba serveru" },
-      { status: 500 }
-    );
   }
+
+  if (insertErr) {
+    console.error("place_visits insert error:", {
+      code: insertErr.code,
+      message: insertErr.message,
+      details: insertErr.details,
+      hint: insertErr.hint,
+    });
+    return NextResponse.json({ ok: false, error: "Insert visit failed" }, { status: 500 });
+  }
+
+  // 2) Apply XP & streak via RPC (use visited_on date)
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  const { data: xpData, error: xpErr } = await supabase.rpc("apply_visit_xp_and_streak", {
+    p_place_id: placeId,
+    p_visit_on: today,
+  });
+
+  if (xpErr) {
+    console.error("apply_visit_xp_and_streak error:", {
+      code: xpErr.code,
+      message: xpErr.message,
+      details: xpErr.details,
+      hint: xpErr.hint,
+    });
+
+    const cur = await getCurrentUserProgress(supabase);
+    return NextResponse.json({
+      ok: true,
+      xp_delta: 0,
+      xp_total: cur.xp,
+      streak_weeks: cur.streak_weeks,
+      best_streak_weeks: cur.best_streak_weeks,
+      warning: "XP calculation failed, showing current state",
+    });
+  }
+
+  // Supabase can return TABLE rows as array
+  const row = Array.isArray(xpData) ? xpData[0] : xpData;
+
+  return NextResponse.json({
+    ok: true,
+    xp_delta: row?.xp_delta ?? 0,
+    xp_total: row?.xp_total ?? 0,
+    streak_weeks: row?.streak_weeks ?? 0,
+    best_streak_weeks: row?.best_streak_weeks ?? 0,
+  });
 }
