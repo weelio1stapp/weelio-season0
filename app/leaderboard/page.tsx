@@ -1,22 +1,37 @@
 import Container from "@/components/Container";
 import PageHeader from "@/components/PageHeader";
 import LeaderboardCard from "@/components/leaderboard/LeaderboardCard";
-import ComingSoonCard from "@/components/leaderboard/ComingSoonCard";
+import ChallengesCard from "@/components/leaderboard/ChallengesCard";
 import TopAuthorsPreview from "@/components/leaderboard/TopAuthorsPreview";
 import TopPlacesPreview from "@/components/leaderboard/TopPlacesPreview";
 import TopWalkersPreview from "@/components/leaderboard/TopWalkersPreview";
 import { getTopPlaces, getTopAuthors, getTopWalkers } from "@/lib/db/leaderboard";
 import { getProfilesByIds } from "@/lib/db/profiles";
+import {
+  getActiveSeason,
+  getActiveChallenges,
+  getMyChallengeProgress,
+} from "@/lib/db/challenges";
+import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function LeaderboardPage() {
+  // Get current user
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   // Fetch top 3 for each category (30 days window)
-  const [topPlaces, topAuthors, topWalkers] = await Promise.all([
-    getTopPlaces(3, 30),
-    getTopAuthors(3, 30),
-    getTopWalkers(3, 30),
-  ]);
+  const [topPlaces, topAuthors, topWalkers, season, challenges] =
+    await Promise.all([
+      getTopPlaces(3, 30),
+      getTopAuthors(3, 30),
+      getTopWalkers(3, 30),
+      getActiveSeason(),
+      getActiveChallenges(),
+    ]);
 
   // Fetch profiles for all users in leaderboards
   const userIds = [
@@ -24,6 +39,9 @@ export default async function LeaderboardPage() {
     ...topWalkers.map((w) => w.user_id),
   ];
   const profiles = await getProfilesByIds(userIds);
+
+  // Fetch challenge progress if user is authenticated
+  const progress = user ? await getMyChallengeProgress(user.id) : [];
 
   return (
     <Container>
@@ -63,11 +81,12 @@ export default async function LeaderboardPage() {
           <TopWalkersPreview walkers={topWalkers} profiles={profiles} />
         </LeaderboardCard>
 
-        {/* Challenges/Seasons - Coming Soon */}
-        <ComingSoonCard
-          title="Výzvy a sezóny"
-          description="Speciální události a soutěže"
-          icon="🏆"
+        {/* Challenges/Seasons */}
+        <ChallengesCard
+          season={season}
+          challenges={challenges}
+          progress={progress}
+          isAuthenticated={!!user}
         />
       </div>
 
