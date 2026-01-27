@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { fetchPlaceById } from "@/lib/db/places";
 import { PLACE_TYPE_LABELS } from "@/lib/placesFilters";
 import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
-import { hasVisitedToday } from "@/lib/db/visits";
+import { hasVisitedToday, getPlaceStats } from "@/lib/db/visits";
 import PlaceGallery from "@/components/PlaceGallery";
 import PlaceAuthorActions from "@/components/PlaceAuthorActions";
 import VisitedButton from "@/components/VisitedButton";
@@ -63,6 +63,9 @@ export default async function PlaceDetailPage({
   // Check if user has visited today
   const alreadyVisited = await hasVisitedToday(place.id);
 
+  // Load place statistics
+  const stats = await getPlaceStats(place.id);
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex items-center justify-between gap-4 mb-4">
@@ -113,6 +116,59 @@ export default async function PlaceDetailPage({
           <VisitedButton placeId={place.id} alreadyVisited={alreadyVisited} />
         </div>
       )}
+
+      {/* Statistics */}
+      <div className="mt-6 rounded-2xl border p-6">
+        <h3 className="text-base font-semibold mb-4">Statistiky</h3>
+
+        {stats.total_visits > 0 ? (
+          <div className="space-y-4">
+            {/* Metrics */}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="rounded-lg border p-3">
+                <div className="text-xs opacity-60 mb-1">Celkem návštěv</div>
+                <div className="text-2xl font-bold">{stats.total_visits}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-xs opacity-60 mb-1">Posledních 30 dní</div>
+                <div className="text-2xl font-bold">{stats.visits_30d}</div>
+              </div>
+            </div>
+
+            {/* Top Walkers */}
+            {stats.top_walkers_30d.length > 0 && (
+              <div>
+                <div className="text-xs opacity-60 mb-2">
+                  Top chodci (30 dní)
+                </div>
+                <div className="space-y-2">
+                  {stats.top_walkers_30d.map((walker, index) => (
+                    <div
+                      key={walker.user_id}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <span className="font-semibold opacity-60">
+                        #{index + 1}
+                      </span>
+                      <span className="opacity-80">
+                        User {walker.user_id.slice(0, 8)}...
+                        {walker.user_id.slice(-4)}
+                      </span>
+                      <span className="ml-auto opacity-60">
+                        {walker.visit_count} {walker.visit_count === 1 ? "návštěva" : walker.visit_count < 5 ? "návštěvy" : "návštěv"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm opacity-60">
+            Zatím zde nikdo nebyl. Buď první!
+          </p>
+        )}
+      </div>
 
       {/* Trasa / Mapa - only show if coordinates exist */}
       {place.start_lat &&
