@@ -9,6 +9,8 @@ interface VisitedButtonProps {
   alreadyVisited: boolean;
 }
 
+const JOURNAL_NUDGE_KEY = "weelio_journal_nudge_hide_until";
+
 export default function VisitedButton({
   placeId,
   alreadyVisited: initialVisited,
@@ -17,6 +19,8 @@ export default function VisitedButton({
   const { showToast } = useToast();
   const [visited, setVisited] = useState(initialVisited);
   const [pending, setPending] = useState(false);
+  const [showJournalPrompt, setShowJournalPrompt] = useState(false);
+  const [dontShowToday, setDontShowToday] = useState(false);
 
   // Format today's date for display
   const todayFormatted = new Date().toLocaleDateString("cs-CZ", {
@@ -24,6 +28,25 @@ export default function VisitedButton({
     month: "numeric",
     year: "numeric",
   });
+
+  // Check if journal prompt should be shown today
+  const shouldShowJournalPrompt = (): boolean => {
+    if (typeof window === "undefined") return false;
+
+    const hideUntil = localStorage.getItem(JOURNAL_NUDGE_KEY);
+    if (!hideUntil) return true;
+
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    return hideUntil < today; // Show if hideUntil date is in the past
+  };
+
+  // Handle "Don't show today" checkbox action
+  const handleHideToday = () => {
+    if (typeof window === "undefined") return;
+
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    localStorage.setItem(JOURNAL_NUDGE_KEY, today);
+  };
 
   const handleClick = async () => {
     if (visited || pending) return;
@@ -80,6 +103,11 @@ export default function VisitedButton({
 
       setVisited(true);
       router.refresh();
+
+      // Show journal prompt if not hidden today
+      if (shouldShowJournalPrompt()) {
+        setShowJournalPrompt(true);
+      }
     } catch (err) {
       console.error("Failed to mark visited:", err);
       showToast("Nepodařilo se zapsat návštěvu", "error");
@@ -89,50 +117,109 @@ export default function VisitedButton({
   };
 
   return (
-    <div className="flex flex-col items-center">
-      <button
-        onClick={handleClick}
-        disabled={visited || pending}
-        className={`
-          inline-flex flex-col items-center gap-1 rounded-lg px-6 py-3 text-sm font-semibold
-          transition-all duration-200
-          ${
-            visited
-              ? "bg-green-100 text-green-800 cursor-not-allowed"
-              : "bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 active:scale-95"
-          }
-          ${pending ? "opacity-50 cursor-wait" : ""}
-        `}
-      >
-        <span className="flex items-center gap-2">
-          {pending && (
-            <svg
-              className="animate-spin h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
+    <>
+      <div className="flex flex-col items-center">
+        <button
+          onClick={handleClick}
+          disabled={visited || pending}
+          className={`
+            inline-flex flex-col items-center gap-1 rounded-lg px-6 py-3 text-sm font-semibold
+            transition-all duration-200
+            ${
+              visited
+                ? "bg-green-100 text-green-800 cursor-not-allowed"
+                : "bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 active:scale-95"
+            }
+            ${pending ? "opacity-50 cursor-wait" : ""}
+          `}
+        >
+          <span className="flex items-center gap-2">
+            {pending && (
+              <svg
+                className="animate-spin h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            )}
+            {pending ? "Zaznamenávám…" : visited ? "✓ Dnes už máš hotovo" : "Byl jsem tady"}
+          </span>
+          {visited && (
+            <span className="text-xs opacity-70">{todayFormatted}</span>
           )}
-          {pending ? "Zaznamenávám…" : visited ? "✓ Dnes už máš hotovo" : "Byl jsem tady"}
-        </span>
-        {visited && (
-          <span className="text-xs opacity-70">{todayFormatted}</span>
-        )}
-      </button>
-    </div>
+        </button>
+      </div>
+
+      {/* Journal Prompt Modal */}
+      {showJournalPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in duration-200">
+            {/* Title */}
+            <h3 className="text-xl font-bold text-[var(--text-primary)]">
+              Chceš si to zapsat?
+            </h3>
+
+            {/* Description */}
+            <p className="text-sm text-[var(--text-secondary)]">
+              Krátký zápis z výletu ti za pár měsíců udělá radost. Klidně jen 1 věta.
+            </p>
+
+            {/* Checkbox */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={dontShowToday}
+                onChange={(e) => setDontShowToday(e.target.checked)}
+                className="w-4 h-4 text-[var(--accent-primary)] rounded focus:ring-2 focus:ring-[var(--accent-primary)]"
+              />
+              <span className="text-sm text-[var(--text-secondary)]">
+                Neukazovat znovu dnes
+              </span>
+            </label>
+
+            {/* Buttons */}
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={() => {
+                  if (dontShowToday) {
+                    handleHideToday();
+                  }
+                  setShowJournalPrompt(false);
+                  router.push(`/journal/new?placeId=${placeId}`);
+                }}
+                className="flex-1 px-4 py-2.5 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-primary)]/90 transition-colors font-medium text-sm"
+              >
+                Zapsat do deníku
+              </button>
+              <button
+                onClick={() => {
+                  if (dontShowToday) {
+                    handleHideToday();
+                  }
+                  setShowJournalPrompt(false);
+                }}
+                className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-[var(--text-primary)]"
+              >
+                Teď ne
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
