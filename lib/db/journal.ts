@@ -161,3 +161,41 @@ export async function getPlaceNamesByIds(
     return placeMap;
   }
 }
+
+/**
+ * Get a single journal entry by ID (only if owned by current user)
+ * Returns null if not found or not owned
+ */
+export async function getMyJournalEntryById(
+  id: string
+): Promise<JournalEntry | null> {
+  try {
+    const supabase = await getSupabaseServerClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from("journal_entries")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("getMyJournalEntryById error:", error);
+      return null;
+    }
+
+    return data as JournalEntry | null;
+  } catch (error) {
+    console.error("getMyJournalEntryById exception:", error);
+    return null;
+  }
+}

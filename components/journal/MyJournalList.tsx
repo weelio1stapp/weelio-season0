@@ -17,10 +17,47 @@ type Props = {
   placeNames: Record<string, string>;
 };
 
-export default function MyJournalList({ entries, placeNames }: Props) {
+export default function MyJournalList({ entries: initialEntries, placeNames }: Props) {
+  const [entries, setEntries] = useState<Entry[]>(initialEntries);
   const [activeFilter, setActiveFilter] = useState<"all" | "private" | "public">("all");
   const [query, setQuery] = useState("");
   const [onlyWithPlace, setOnlyWithPlace] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Handle delete
+  const handleDelete = async (id: string) => {
+    if (!confirm("Opravdu smazat tento zápis?")) {
+      return;
+    }
+
+    setDeletingId(id);
+    setDeleteError(null);
+
+    try {
+      const response = await fetch("/api/journal/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Nepodařilo se smazat záznam");
+      }
+
+      // Optimistically remove from state
+      setEntries((prev) => prev.filter((entry) => entry.id !== id));
+    } catch (err: any) {
+      console.error("Delete error:", err);
+      setDeleteError(err.message || "Došlo k chybě při mazání");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Filter entries based on current state
   const filteredEntries = useMemo(() => {
@@ -135,6 +172,13 @@ export default function MyJournalList({ entries, placeNames }: Props) {
         </div>
       </Card>
 
+      {/* Delete Error */}
+      {deleteError && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-700">{deleteError}</p>
+        </div>
+      )}
+
       {/* Results */}
       {filteredEntries.length > 0 ? (
         <Card>
@@ -154,25 +198,46 @@ export default function MyJournalList({ entries, placeNames }: Props) {
                   ? entry.content.slice(0, 240) + "…"
                   : entry.content;
 
+              const isDeleting = deletingId === entry.id;
+
               return (
                 <div
                   key={entry.id}
                   className="p-4 rounded-lg border border-gray-200 hover:border-[var(--accent-primary)]/30 transition-colors"
                 >
                   {/* Header */}
-                  <div className="flex items-center gap-3 mb-2">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        entry.visibility === "public"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      {entry.visibility === "public" ? "Veřejný" : "Soukromý"}
-                    </span>
-                    <span className="text-sm text-[var(--text-secondary)]">
-                      {formattedDate}
-                    </span>
+                  <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium ${
+                          entry.visibility === "public"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {entry.visibility === "public" ? "Veřejný" : "Soukromý"}
+                      </span>
+                      <span className="text-sm text-[var(--text-secondary)]">
+                        {formattedDate}
+                      </span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/journal/edit/${entry.id}`}
+                        className="text-xs text-[var(--accent-primary)] hover:underline"
+                      >
+                        Upravit
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(entry.id)}
+                        disabled={isDeleting}
+                        className="text-xs text-red-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isDeleting ? "Mazání..." : "Smazat"}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Content */}
