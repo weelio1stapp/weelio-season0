@@ -17,6 +17,10 @@ import {
 } from "@/lib/db/challenges";
 import { getUserProgress } from "@/lib/db/progress";
 import ChallengesCard from "@/components/leaderboard/ChallengesCard";
+import {
+  getMyJournalEntries,
+  getPlaceNamesByIds,
+} from "@/lib/db/journal";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +67,7 @@ export default async function MyProfilePage() {
     season,
     challenges,
     userProgress,
+    journalEntries,
   ] = await Promise.all([
     getProfileById(userId),
     getAuthorStats(userId, 30),
@@ -71,7 +76,15 @@ export default async function MyProfilePage() {
     getActiveSeason(),
     getActiveChallenges(),
     getUserProgress(),
+    getMyJournalEntries(30),
   ]);
+
+  // Batch load place names for journal entries
+  const placeIds = journalEntries
+    .filter((entry) => entry.place_id)
+    .map((entry) => entry.place_id!);
+  const placeNames =
+    placeIds.length > 0 ? await getPlaceNamesByIds(placeIds) : new Map();
 
   // Fetch challenge progress (separate to handle potential errors)
   let progress: Awaited<ReturnType<typeof getMyChallengeProgress>> = [];
@@ -372,6 +385,92 @@ export default async function MyProfilePage() {
             <p className="text-center text-[var(--text-secondary)] py-4">
               Aktuálně není aktivní sezóna.
             </p>
+          </Card>
+        )}
+      </div>
+
+      {/* My Journal */}
+      <div className="mt-8">
+        <h3 className="text-xl font-bold text-[var(--text-primary)] mb-4">
+          Můj deník
+        </h3>
+        {journalEntries.length > 0 ? (
+          <Card>
+            <div className="space-y-4">
+              {journalEntries.map((entry) => {
+                const placeName = entry.place_id
+                  ? placeNames.get(entry.place_id)
+                  : null;
+                const entryDate = new Date(entry.created_at);
+                const formattedDate = entryDate.toLocaleDateString("cs-CZ", {
+                  day: "numeric",
+                  month: "numeric",
+                  year: "numeric",
+                });
+
+                // Truncate content to 240 chars
+                const truncatedContent =
+                  entry.content.length > 240
+                    ? entry.content.slice(0, 240) + "…"
+                    : entry.content;
+
+                return (
+                  <div
+                    key={entry.id}
+                    className="p-4 rounded-lg border border-gray-200 hover:border-[var(--accent-primary)]/30 transition-colors"
+                  >
+                    {/* Header */}
+                    <div className="flex items-center gap-3 mb-2">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium ${
+                          entry.visibility === "public"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {entry.visibility === "public"
+                          ? "Veřejný"
+                          : "Soukromý"}
+                      </span>
+                      <span className="text-sm text-[var(--text-secondary)]">
+                        {formattedDate}
+                      </span>
+                    </div>
+
+                    {/* Content */}
+                    <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap">
+                      {truncatedContent}
+                    </p>
+
+                    {/* Place link */}
+                    {entry.place_id && placeName && (
+                      <div className="mt-3">
+                        <Link
+                          href={`/p/${entry.place_id}`}
+                          className="text-sm text-[var(--accent-primary)] hover:underline inline-flex items-center gap-1"
+                        >
+                          📍 {placeName}
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        ) : (
+          <Card>
+            <div className="text-center py-8">
+              <p className="text-[var(--text-secondary)] mb-4">
+                Zatím nemáš žádný záznam v deníku.
+              </p>
+              <Link
+                href="/journal/new"
+                className="inline-block px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-90 transition-opacity"
+              >
+                Napsat první záznam
+              </Link>
+            </div>
           </Card>
         )}
       </div>

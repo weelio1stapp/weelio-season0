@@ -11,6 +11,8 @@ import PlaceGallery from "@/components/PlaceGallery";
 import PlaceAuthorActions from "@/components/PlaceAuthorActions";
 import VisitedButton from "@/components/VisitedButton";
 import NextStepsSection from "@/components/place/NextStepsSection";
+import { getPublicJournalEntriesForPlace } from "@/lib/db/journal";
+import { getProfilesByIds, formatUserDisplay } from "@/lib/db/profiles";
 
 /**
  * Format coordinate for Mapy.com route planner
@@ -70,14 +72,19 @@ export default async function PlaceDetailPage({
   // Load place statistics
   const stats = await getPlaceStats(place.id);
 
-  // Load next steps data
-  const [nearbyPlaces, activeChallenges, topWalkers, topAuthors] =
+  // Load next steps data and journal entries
+  const [nearbyPlaces, activeChallenges, topWalkers, topAuthors, journalEntries] =
     await Promise.all([
       getNearbyPlaces(place.area, place.id, 3),
       getActiveChallenges(),
       currentUserId ? getTopWalkers(100, 30) : Promise.resolve([]),
       currentUserId ? getTopAuthors(100, 30) : Promise.resolve([]),
+      getPublicJournalEntriesForPlace(place.id, 10),
     ]);
+
+  // Batch load profiles for journal entries
+  const userIds = journalEntries.map((entry) => entry.user_id);
+  const profiles = userIds.length > 0 ? await getProfilesByIds(userIds) : new Map();
 
   // Load challenge progress if authenticated
   let challengeProgress: Awaited<ReturnType<typeof getMyChallengeProgress>> = [];
@@ -162,6 +169,82 @@ export default async function PlaceDetailPage({
         userRanks={userRanks}
         isAuthenticated={!!currentUserId}
       />
+
+      {/* Place Journal */}
+      <div className="mt-6 rounded-2xl border p-6">
+        <h3 className="text-base font-semibold mb-4">Deník místa</h3>
+
+        {journalEntries.length > 0 ? (
+          <div className="space-y-4">
+            {journalEntries.map((entry) => {
+              const profile = profiles.get(entry.user_id);
+              const displayName = formatUserDisplay(entry.user_id, profile);
+              const entryDate = new Date(entry.created_at);
+              const formattedDate = entryDate.toLocaleDateString("cs-CZ", {
+                day: "numeric",
+                month: "numeric",
+                year: "numeric",
+              });
+
+              return (
+                <div
+                  key={entry.id}
+                  className="p-4 rounded-lg border border-gray-200"
+                >
+                  {/* Author info */}
+                  <div className="flex items-center gap-3 mb-3">
+                    {profile?.avatar_url ? (
+                      <img
+                        src={profile.avatar_url}
+                        alt={displayName}
+                        className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-200"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-lg ring-2 ring-gray-200">
+                        👤
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
+                        {displayName}
+                      </p>
+                      <p className="text-xs text-[var(--text-secondary)]">
+                        {formattedDate}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap">
+                    {entry.content}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-6">
+            <p className="text-sm text-[var(--text-secondary)] mb-4">
+              Zatím žádné veřejné zápisky k tomuto místu.
+            </p>
+            {currentUserId ? (
+              <Link
+                href={`/journal/new?placeId=${place.id}`}
+                className="inline-block px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-90 transition-opacity text-sm"
+              >
+                Zapsat do deníku
+              </Link>
+            ) : (
+              <Link
+                href="/leaderboard"
+                className="inline-block px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+              >
+                Přihlásit se
+              </Link>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Statistics */}
       <div className="mt-6 rounded-2xl border p-6">

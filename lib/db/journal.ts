@@ -122,3 +122,42 @@ export async function getPublicJournalEntriesForPlace(
     return [];
   }
 }
+
+/**
+ * Get places by IDs (batch load for journal entries)
+ * Returns a Map of placeId -> place name
+ */
+export async function getPlaceNamesByIds(
+  placeIds: string[]
+): Promise<Map<string, string>> {
+  const placeMap = new Map<string, string>();
+
+  if (placeIds.length === 0) {
+    return placeMap;
+  }
+
+  try {
+    const supabase = await getSupabaseServerClient();
+
+    const { data, error } = await supabase
+      .from("places")
+      .select("id, name")
+      .in("id", placeIds);
+
+    if (error) {
+      console.error("getPlaceNamesByIds error:", error);
+      return placeMap;
+    }
+
+    if (data) {
+      data.forEach((place) => {
+        placeMap.set(place.id, place.name);
+      });
+    }
+
+    return placeMap;
+  } catch (error) {
+    console.error("getPlaceNamesByIds exception:", error);
+    return placeMap;
+  }
+}
