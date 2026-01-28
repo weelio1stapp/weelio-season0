@@ -107,7 +107,15 @@ export default async function MyProfilePage() {
         </Link>
       </div>
 
-      <PageHeader title="Můj profil" description="Tvoje statistiky na Weelio" />
+      <div className="flex items-center justify-between mb-6">
+        <PageHeader title="Můj profil" description="Tvoje statistiky na Weelio" />
+        <Link
+          href="/me/edit"
+          className="px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-90 transition-opacity text-sm font-medium"
+        >
+          Upravit profil
+        </Link>
+      </div>
 
       {/* Profile Card */}
       <Card>

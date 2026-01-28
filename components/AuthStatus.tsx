@@ -59,6 +59,12 @@ export default function AuthStatus() {
         >
           Můj profil
         </Link>
+        <Link
+          href="/me/edit"
+          className="text-sm hover:text-[var(--accent-primary)] transition-colors"
+        >
+          Upravit
+        </Link>
         <Button onClick={handleSignOut} variant="outline" className="text-sm py-1 px-3">
           Odhlásit
         </Button>

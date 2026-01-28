@@ -75,6 +75,43 @@ export async function getProfilesByIds(
 }
 
 /**
+ * Update or insert profile for current user
+ * Returns the updated profile or null on error
+ */
+export async function upsertProfile(
+  userId: string,
+  updates: { display_name?: string; avatar_url?: string }
+): Promise<Profile | null> {
+  try {
+    const supabase = await getSupabaseServerClient();
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .upsert(
+        {
+          id: userId,
+          ...updates,
+        },
+        {
+          onConflict: "id",
+        }
+      )
+      .select("id, display_name, avatar_url")
+      .single();
+
+    if (error) {
+      console.error("upsertProfile error:", error);
+      return null;
+    }
+
+    return data as Profile;
+  } catch (error) {
+    console.error("upsertProfile exception:", error);
+    return null;
+  }
+}
+
+/**
  * Format user display - use display_name if available, otherwise fallback
  */
 export function formatUserDisplay(
