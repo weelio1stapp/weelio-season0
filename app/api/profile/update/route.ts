@@ -59,21 +59,27 @@ export async function POST(req: Request) {
 
     const path = `${user.id}/${Date.now()}.${ext}`;
 
-    const { error: upErr } = await supabase.storage
-      .from("avatars")
-      .upload(path, avatar, {
-        upsert: true,
-        contentType: avatar.type,
-        cacheControl: "3600",
-      });
+    const { error: upErr } = await supabase.storage.from("avatars").upload(path, avatar, {
+      upsert: true,
+      contentType: avatar.type,
+      cacheControl: "3600",
+    });
 
     if (upErr) {
-      return jsonError("Avatar upload failed", {
-        storage: { message: upErr.message, name: upErr.name },
-        hint:
-          "Zkontroluj bucket 'avatars' + Storage policies (insert/update) pro authenticated.",
-        path,
-      }, 403);
+      return jsonError(
+        "Avatar upload failed",
+        {
+          storage: {
+            message: upErr.message,
+            name: (upErr as any).name,
+            statusCode: (upErr as any).statusCode,
+          },
+          hint:
+            "Zkontroluj: bucket 'avatars' existuje + je Public (nebo děláš signed URL) + Storage policies pro authenticated (INSERT/UPDATE).",
+          path,
+        },
+        403
+      );
     }
 
     const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
@@ -85,27 +91,32 @@ export async function POST(req: Request) {
   }
 
   // 4) Upsert profile
-  // Předpoklad: profiles má user_id (PK/unique) a RLS, že user může upsertovat svůj řádek.
+  // Tvoje tabulka profiles má sloupce: id (uuid PK), display_name, avatar_url...
+  // Takže používáme id = user.id (NE user_id).
   const payload: any = {
-    user_id: user.id,
+    id: user.id,
     display_name,
   };
   if (avatar_url) payload.avatar_url = avatar_url;
 
   const { error: upsertErr } = await supabase.from("profiles").upsert(payload, {
-    onConflict: "user_id",
+    onConflict: "id",
   });
 
   if (upsertErr) {
-    return jsonError("Profile upsert failed", {
-      db: {
-        code: upsertErr.code,
-        message: upsertErr.message,
-        details: (upsertErr as any).details,
-        hint: (upsertErr as any).hint,
+    return jsonError(
+      "Profile upsert failed",
+      {
+        db: {
+          code: (upsertErr as any).code,
+          message: upsertErr.message,
+          details: (upsertErr as any).details,
+          hint: (upsertErr as any).hint,
+        },
+        payload,
       },
-      payload,
-    }, 403);
+      403
+    );
   }
 
   return NextResponse.json({ ok: true, display_name, avatar_url });
