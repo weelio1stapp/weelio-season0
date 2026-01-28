@@ -1,108 +1,112 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
-import { upsertProfile } from "@/lib/db/profiles";
 
-export async function POST(request: NextRequest) {
+export const runtime = "nodejs"; // jistota kvůli práci se soubory
+
+function jsonError(message: string, extra?: any, status = 400) {
+  return NextResponse.json({ ok: false, error: message, ...extra }, { status });
+}
+
+export async function POST(req: Request) {
+  const supabase = await getSupabaseServerClient();
+
+  // 1) Auth
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  if (userErr) return jsonError("auth.getUser failed", { userErr }, 401);
+
+  const user = userData?.user;
+  if (!user) return jsonError("Not authenticated", undefined, 401);
+
+  // 2) Parse form-data
+  let form: FormData;
   try {
-    // Check authentication
-    const supabase = await getSupabaseServerClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Musíte být přihlášeni" },
-        { status: 401 }
-      );
-    }
-
-    // Parse form data
-    const formData = await request.formData();
-    const displayName = formData.get("display_name") as string | null;
-    const avatarFile = formData.get("avatar") as File | null;
-
-    // Prepare updates object
-    const updates: { display_name?: string; avatar_url?: string } = {};
-
-    // Handle display name
-    if (displayName !== null && displayName.trim() !== "") {
-      updates.display_name = displayName.trim();
-    }
-
-    // Handle avatar upload
-    if (avatarFile && avatarFile.size > 0) {
-      // Validate file type
-      const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-      if (!allowedTypes.includes(avatarFile.type)) {
-        return NextResponse.json(
-          { error: "Nepodporovaný formát obrázku. Použijte JPG, PNG nebo WebP." },
-          { status: 400 }
-        );
-      }
-
-      // Validate file size (max 5MB)
-      const maxSize = 5 * 1024 * 1024; // 5MB
-      if (avatarFile.size > maxSize) {
-        return NextResponse.json(
-          { error: "Obrázek je příliš velký. Maximum je 5MB." },
-          { status: 400 }
-        );
-      }
-
-      // Get file extension
-      const fileExt = avatarFile.name.split(".").pop() || "jpg";
-      const timestamp = Date.now();
-      const filePath = `${user.id}/${timestamp}.${fileExt}`;
-
-      // Convert File to ArrayBuffer
-      const arrayBuffer = await avatarFile.arrayBuffer();
-      const buffer = new Uint8Array(arrayBuffer);
-
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, buffer, {
-          contentType: avatarFile.type,
-          upsert: true,
-        });
-
-      if (uploadError) {
-        console.error("Avatar upload error:", uploadError);
-        return NextResponse.json(
-          { error: `Chyba při nahrávání avatara: ${uploadError.message}` },
-          { status: 500 }
-        );
-      }
-
-      // Get public URL
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("avatars").getPublicUrl(filePath);
-
-      updates.avatar_url = publicUrl;
-    }
-
-    // Update profile
-    const updatedProfile = await upsertProfile(user.id, updates);
-
-    if (!updatedProfile) {
-      return NextResponse.json(
-        { error: "Nepodařilo se aktualizovat profil" },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      ok: true,
-      profile: updatedProfile,
-    });
-  } catch (error) {
-    console.error("Profile update error:", error);
-    return NextResponse.json(
-      { error: "Došlo k neočekávané chybě" },
-      { status: 500 }
-    );
+    form = await req.formData();
+  } catch (e: any) {
+    return jsonError("Invalid form data", { details: String(e?.message ?? e) }, 400);
   }
+
+  const displayNameRaw = form.get("display_name");
+  const avatar = form.get("avatar"); // File | null
+
+  const display_name =
+    typeof displayNameRaw === "string" ? displayNameRaw.trim().slice(0, 50) : "";
+
+  if (!display_name) {
+    return jsonError("display_name is required");
+  }
+
+  // 3) Optional upload avatar
+  let avatar_url: string | null = null;
+
+  if (avatar && avatar instanceof File && avatar.size > 0) {
+    // basic checks
+    const maxBytes = 5 * 1024 * 1024;
+    if (avatar.size > maxBytes) {
+      return jsonError("Avatar too large (max 5MB)", { size: avatar.size }, 413);
+    }
+
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(avatar.type)) {
+      return jsonError("Unsupported avatar type", { type: avatar.type }, 415);
+    }
+
+    const ext =
+      avatar.type === "image/png"
+        ? "png"
+        : avatar.type === "image/webp"
+          ? "webp"
+          : "jpg";
+
+    const path = `${user.id}/${Date.now()}.${ext}`;
+
+    const { error: upErr } = await supabase.storage
+      .from("avatars")
+      .upload(path, avatar, {
+        upsert: true,
+        contentType: avatar.type,
+        cacheControl: "3600",
+      });
+
+    if (upErr) {
+      return jsonError("Avatar upload failed", {
+        storage: { message: upErr.message, name: upErr.name },
+        hint:
+          "Zkontroluj bucket 'avatars' + Storage policies (insert/update) pro authenticated.",
+        path,
+      }, 403);
+    }
+
+    const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+    avatar_url = pub?.publicUrl ?? null;
+
+    if (!avatar_url) {
+      return jsonError("Failed to get public URL", { path }, 500);
+    }
+  }
+
+  // 4) Upsert profile
+  // Předpoklad: profiles má user_id (PK/unique) a RLS, že user může upsertovat svůj řádek.
+  const payload: any = {
+    user_id: user.id,
+    display_name,
+  };
+  if (avatar_url) payload.avatar_url = avatar_url;
+
+  const { error: upsertErr } = await supabase.from("profiles").upsert(payload, {
+    onConflict: "user_id",
+  });
+
+  if (upsertErr) {
+    return jsonError("Profile upsert failed", {
+      db: {
+        code: upsertErr.code,
+        message: upsertErr.message,
+        details: (upsertErr as any).details,
+        hint: (upsertErr as any).hint,
+      },
+      payload,
+    }, 403);
+  }
+
+  return NextResponse.json({ ok: true, display_name, avatar_url });
 }
