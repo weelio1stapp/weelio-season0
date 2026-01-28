@@ -12,8 +12,13 @@ import PlaceAuthorActions from "@/components/PlaceAuthorActions";
 import VisitedButton from "@/components/VisitedButton";
 import NextStepsSection from "@/components/place/NextStepsSection";
 import PlaceJournalSection from "@/components/place/PlaceJournalSection";
+import PlaceRiddles from "@/components/place/PlaceRiddles";
 import { getPublicJournalEntriesForPlace } from "@/lib/db/journal";
 import { getProfilesByIds, formatUserDisplay } from "@/lib/db/profiles";
+import {
+  getPublicRiddlesForPlace,
+  getMySolvedRiddles,
+} from "@/lib/db/riddles";
 
 /**
  * Format coordinate for Mapy.com route planner
@@ -74,13 +79,14 @@ export default async function PlaceDetailPage({
   const stats = await getPlaceStats(place.id);
 
   // Load next steps data and journal entries
-  const [nearbyPlaces, activeChallenges, topWalkers, topAuthors, journalEntries] =
+  const [nearbyPlaces, activeChallenges, topWalkers, topAuthors, journalEntries, riddles] =
     await Promise.all([
       getNearbyPlaces(place.area, place.id, 3),
       getActiveChallenges(),
       currentUserId ? getTopWalkers(100, 30) : Promise.resolve([]),
       currentUserId ? getTopAuthors(100, 30) : Promise.resolve([]),
       getPublicJournalEntriesForPlace(place.id, 10),
+      getPublicRiddlesForPlace(place.id),
     ]);
 
   // Batch load profiles for journal entries
@@ -102,6 +108,13 @@ export default async function PlaceDetailPage({
     content: e.content,
     created_at: typeof e.created_at === "string" ? e.created_at : new Date(e.created_at).toISOString(),
   }));
+
+  // Load solved riddles for current user
+  const riddleIds = riddles.map((r) => r.id);
+  const solvedRiddleIds = currentUserId && riddleIds.length > 0
+    ? await getMySolvedRiddles(riddleIds)
+    : new Set<string>();
+  const solvedRiddleIdsArray = Array.from(solvedRiddleIds);
 
   // Load challenge progress if authenticated
   let challengeProgress: Awaited<ReturnType<typeof getMyChallengeProgress>> = [];
@@ -193,6 +206,15 @@ export default async function PlaceDetailPage({
         journalEntries={journalEntriesForClient}
         profiles={profilesRecord}
         isAuthenticated={!!currentUserId}
+      />
+
+      {/* Riddles */}
+      <PlaceRiddles
+        placeId={place.id}
+        riddles={riddles}
+        solvedRiddleIds={solvedRiddleIdsArray}
+        isAuthenticated={!!currentUserId}
+        isPlaceAuthor={isAuthor}
       />
 
       {/* Statistics */}
