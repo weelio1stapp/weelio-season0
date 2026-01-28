@@ -66,7 +66,7 @@ export default function AuthStatus() {
           Upravit
         </Link>
         <Link
-          href="/journal/new"
+          href="/journal"
           className="text-sm hover:text-[var(--accent-primary)] transition-colors"
         >
           Deník
