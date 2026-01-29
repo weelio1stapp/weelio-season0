@@ -2,6 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import QuickJournalModal from "@/components/journal/QuickJournalModal";
 
 type JournalEntry = {
@@ -45,91 +53,89 @@ export default function PlaceJournalSection({
   };
 
   return (
-    <div className="mt-6 rounded-2xl border p-6">
-      {/* Header with button */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-semibold">Deník místa</h3>
-        {isAuthenticated && (
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="px-3 py-1.5 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-90 transition-opacity text-sm font-medium"
-          >
-            Napsat zápis
-          </button>
-        )}
-      </div>
+    <>
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Deník místa</CardTitle>
+              <CardDescription>
+                Veřejné zápisky od návštěvníků
+              </CardDescription>
+            </div>
+            {isAuthenticated && (
+              <Button onClick={() => setIsModalOpen(true)} size="sm">
+                Napsat zápis
+              </Button>
+            )}
+          </div>
+        </CardHeader>
 
-      {/* Entries */}
-      {journalEntries.length > 0 ? (
-        <div className="space-y-4">
-          {journalEntries.map((entry) => {
-            const profile = profiles[entry.user_id] || null;
-            const displayName = formatUserDisplay(entry.user_id, profile);
-            const entryDate = new Date(entry.created_at);
-            const formattedDate = entryDate.toLocaleDateString("cs-CZ", {
-              day: "numeric",
-              month: "numeric",
-              year: "numeric",
-            });
+        <CardContent>
+          {journalEntries.length > 0 ? (
+            <div className="space-y-4">
+              {journalEntries.map((entry) => {
+                const profile = profiles[entry.user_id] || null;
+                const displayName = formatUserDisplay(entry.user_id, profile);
+                const entryDate = new Date(entry.created_at);
+                const formattedDate = entryDate.toLocaleDateString("cs-CZ", {
+                  day: "numeric",
+                  month: "numeric",
+                  year: "numeric",
+                });
 
-            return (
-              <div
-                key={entry.id}
-                className="p-4 rounded-lg border border-gray-200"
-              >
-                {/* Author info */}
-                <div className="flex items-center gap-3 mb-3">
-                  {profile?.avatar_url ? (
-                    <img
-                      src={profile.avatar_url}
-                      alt={displayName}
-                      className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-200"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-lg ring-2 ring-gray-200">
-                      👤
+                return (
+                  <div
+                    key={entry.id}
+                    className="p-4 rounded-lg border bg-card"
+                  >
+                    {/* Author info */}
+                    <div className="flex items-center gap-3 mb-3">
+                      {profile?.avatar_url ? (
+                        <img
+                          src={profile.avatar_url}
+                          alt={displayName}
+                          className="w-10 h-10 rounded-full object-cover ring-2 ring-border"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-lg ring-2 ring-border">
+                          👤
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{displayName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formattedDate}
+                        </p>
+                      </div>
                     </div>
-                  )}
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-[var(--text-primary)]">
-                      {displayName}
-                    </p>
-                    <p className="text-xs text-[var(--text-secondary)]">
-                      {formattedDate}
+
+                    {/* Content */}
+                    <p className="text-sm whitespace-pre-wrap">
+                      {entry.content}
                     </p>
                   </div>
-                </div>
-
-                {/* Content */}
-                <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap">
-                  {entry.content}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="text-center py-6">
-          <p className="text-sm text-[var(--text-secondary)] mb-4">
-            Zatím žádné veřejné zápisky k tomuto místu.
-          </p>
-          {isAuthenticated ? (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="inline-block px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-90 transition-opacity text-sm"
-            >
-              Napsat první zápis
-            </button>
+                );
+              })}
+            </div>
           ) : (
-            <Link
-              href="/leaderboard"
-              className="inline-block px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-            >
-              Přihlásit se
-            </Link>
+            <div className="text-center py-8">
+              <p className="text-sm text-muted-foreground mb-4">
+                Zatím žádné veřejné zápisky k tomuto místu.
+              </p>
+              {isAuthenticated ? (
+                <Button onClick={() => setIsModalOpen(true)}>
+                  Napsat první zápis
+                </Button>
+              ) : (
+                <Button variant="outline" asChild>
+                  <Link href="/leaderboard">Přihlásit se</Link>
+                </Button>
+              )}
+            </div>
           )}
-        </div>
-      )}
+        </CardContent>
+      </Card>
 
       {/* Quick Add Modal */}
       <QuickJournalModal
@@ -137,6 +143,6 @@ export default function PlaceJournalSection({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
-    </div>
+    </>
   );
 }
