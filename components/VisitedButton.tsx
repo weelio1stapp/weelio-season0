@@ -3,6 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface VisitedButtonProps {
   placeId: string;
@@ -165,61 +175,56 @@ export default function VisitedButton({
       </div>
 
       {/* Journal Prompt Modal */}
-      {showJournalPrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in duration-200">
-            {/* Title */}
-            <h3 className="text-xl font-bold text-[var(--text-primary)]">
-              Chceš si to zapsat?
-            </h3>
-
-            {/* Description */}
-            <p className="text-sm text-[var(--text-secondary)]">
+      <Dialog open={showJournalPrompt} onOpenChange={setShowJournalPrompt}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Chceš si to zapsat?</DialogTitle>
+            <DialogDescription>
               Krátký zápis z výletu ti za pár měsíců udělá radost. Klidně jen 1 věta.
-            </p>
+            </DialogDescription>
+          </DialogHeader>
 
-            {/* Checkbox */}
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={dontShowToday}
-                onChange={(e) => setDontShowToday(e.target.checked)}
-                className="w-4 h-4 text-[var(--accent-primary)] rounded focus:ring-2 focus:ring-[var(--accent-primary)]"
-              />
-              <span className="text-sm text-[var(--text-secondary)]">
-                Neukazovat znovu dnes
-              </span>
+          {/* Checkbox */}
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="dont-show-today"
+              checked={dontShowToday}
+              onCheckedChange={(checked) => setDontShowToday(checked === true)}
+            />
+            <label
+              htmlFor="dont-show-today"
+              className="text-sm text-muted-foreground cursor-pointer select-none"
+            >
+              Neukazovat znovu dnes
             </label>
-
-            {/* Buttons */}
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                onClick={() => {
-                  if (dontShowToday) {
-                    handleHideToday();
-                  }
-                  setShowJournalPrompt(false);
-                  router.push(`/journal/new?placeId=${placeId}`);
-                }}
-                className="flex-1 px-4 py-2.5 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-primary)]/90 transition-colors font-medium text-sm"
-              >
-                Zapsat do deníku
-              </button>
-              <button
-                onClick={() => {
-                  if (dontShowToday) {
-                    handleHideToday();
-                  }
-                  setShowJournalPrompt(false);
-                }}
-                className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-[var(--text-primary)]"
-              >
-                Teď ne
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (dontShowToday) {
+                  handleHideToday();
+                }
+                setShowJournalPrompt(false);
+              }}
+            >
+              Teď ne
+            </Button>
+            <Button
+              onClick={() => {
+                if (dontShowToday) {
+                  handleHideToday();
+                }
+                setShowJournalPrompt(false);
+                router.push(`/journal/new?placeId=${placeId}`);
+              }}
+            >
+              Zapsat do deníku
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
