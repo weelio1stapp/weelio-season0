@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AuthStatus from "./AuthStatus";
+import ThemeToggle from "./theme/ThemeToggle";
 
 export default function Nav() {
   const navItems = [
@@ -22,7 +23,10 @@ export default function Nav() {
           </Link>
         ))}
       </div>
-      <AuthStatus />
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+        <AuthStatus />
+      </div>
     </nav>
   );
 }
