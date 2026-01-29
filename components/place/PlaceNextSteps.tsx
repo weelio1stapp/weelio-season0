@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/popover";
 import VisitedButton from "@/components/VisitedButton";
 import QuickJournalModal from "@/components/journal/QuickJournalModal";
+import { copy } from "@/lib/copy";
 
 const ONBOARDING_KEY = "weelio_onboarding_nextsteps_seen";
 
@@ -79,7 +80,7 @@ export default function PlaceNextSteps({
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-3 items-center justify-center py-4">
             <Button asChild size="lg">
-              <Link href="/leaderboard">Přihlásit se</Link>
+              <Link href="/leaderboard">{copy.common.login}</Link>
             </Button>
             <Button
               variant="ghost"

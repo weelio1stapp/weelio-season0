@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Card from "@/components/Card";
 import { Profile } from "@/lib/db/profiles";
+import { copy } from "@/lib/copy";
 
 type ProfileEditFormProps = {
   profile: Profile | null;
@@ -97,7 +98,7 @@ export default function ProfileEditForm({
       }
 
       // Success - redirect to profile page
-      toast.success("Profil uložen");
+      toast.success(copy.common.saved);
       router.push("/me");
       router.refresh();
     } catch (err: any) {

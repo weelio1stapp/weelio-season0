@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import Card from "@/components/Card";
+import { copy } from "@/lib/copy";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,7 +61,7 @@ export default function MyJournalList({ entries: initialEntries, placeNames }: P
 
       // Optimistically remove from state
       setEntries((prev) => prev.filter((entry) => entry.id !== id));
-      toast.success("Zápis smazán");
+      toast.success(copy.common.deleted);
     } catch (err: any) {
       console.error("Delete error:", err);
       const errorMessage = err.message || "Smazání se nepovedlo";
@@ -244,7 +245,7 @@ export default function MyJournalList({ entries: initialEntries, placeNames }: P
                         disabled={isDeleting}
                         className="text-xs text-red-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {isDeleting ? "Mazání..." : "Smazat"}
+                        {isDeleting ? copy.common.deleting : copy.common.delete}
                       </button>
                     </div>
                   </div>
@@ -292,14 +293,14 @@ export default function MyJournalList({ entries: initialEntries, placeNames }: P
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setPendingDeleteId(null)}>
-              Zrušit
+              {copy.common.cancel}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => pendingDeleteId && handleDelete(pendingDeleteId)}
               disabled={deletingId === pendingDeleteId}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deletingId === pendingDeleteId ? "Mazání..." : "Smazat"}
+              {deletingId === pendingDeleteId ? copy.common.deleting : copy.common.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

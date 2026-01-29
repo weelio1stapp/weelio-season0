@@ -7,6 +7,7 @@ export const cs = {
   common: {
     saved: "Uloženo",
     savedCheck: "Uloženo ✅",
+    deleted: "Smazáno",
     login: "Přihlásit se",
     browse: "Procházet",
     cancel: "Zrušit",

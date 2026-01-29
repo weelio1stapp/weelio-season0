@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Card from "@/components/Card";
+import { copy } from "@/lib/copy";
 
 type JournalNewFormProps = {
   placeId?: string;
@@ -53,7 +54,7 @@ export default function JournalNewForm({ placeId }: JournalNewFormProps) {
       }
 
       // Success - redirect to /me
-      toast.success("Zápis uložen");
+      toast.success(copy.common.saved);
       router.push("/me");
       router.refresh();
     } catch (err: any) {

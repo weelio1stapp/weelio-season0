@@ -6,6 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { copy } from "@/lib/copy";
 
 export default function PlaceRiddlesSkeleton() {
   return (
@@ -13,8 +14,8 @@ export default function PlaceRiddlesSkeleton() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <CardTitle className="text-lg">Kešky na místě</CardTitle>
-            <CardDescription>Vyřeš hádanky a získej XP body</CardDescription>
+            <CardTitle className="text-lg">{copy.riddles.titleOnPlace}</CardTitle>
+            <CardDescription>{copy.riddles.description}</CardDescription>
           </div>
           <Skeleton className="h-9 w-24" />
         </div>

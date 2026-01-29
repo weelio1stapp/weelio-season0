@@ -5,6 +5,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browserClient";
 import Button from "./Button";
 import { useAuth } from "./AuthProvider";
 import Link from "next/link";
+import { copy } from "@/lib/copy";
 
 export default function AuthStatus() {
   const { user, loading } = useAuth();
@@ -81,7 +82,7 @@ export default function AuthStatus() {
   return (
     <div className="flex items-center gap-2">
       <Button onClick={handleSignIn} variant="primary" className="text-sm py-1 px-3">
-        Přihlásit se
+        {copy.common.login}
       </Button>
       <button
         onClick={handleDebugSession}
