@@ -15,6 +15,7 @@ import PlaceActionBar from "@/components/place/PlaceActionBar";
 import NextStepsSection from "@/components/place/NextStepsSection";
 import PlaceJournalSection from "@/components/place/PlaceJournalSection";
 import PlaceRiddles from "@/components/place/PlaceRiddles";
+import PlaceDailyProgressStrip from "@/components/place/PlaceDailyProgressStrip";
 import { getPublicJournalEntriesForPlace } from "@/lib/db/journal";
 import { getProfilesByIds, formatUserDisplay } from "@/lib/db/profiles";
 import {
@@ -185,6 +186,15 @@ export default async function PlaceDetailPage({
         <h3 className="text-base font-semibold">Proč jít</h3>
         <p className="mt-2 text-sm opacity-80">{place.why}</p>
       </div>
+
+      {/* Daily Progress Strip */}
+      {currentUserId && (
+        <PlaceDailyProgressStrip
+          placeId={place.id}
+          isAuthenticated={true}
+          alreadyVisited={alreadyVisited}
+        />
+      )}
 
       {/* Quick Actions CTA */}
       <PlaceNextSteps
