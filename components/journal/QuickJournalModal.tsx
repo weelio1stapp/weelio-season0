@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { copy } from "@/lib/copy";
 
 type QuickJournalModalProps = {
   placeId: string;
@@ -42,13 +43,13 @@ export default function QuickJournalModal({
     try {
       // Validate content
       if (content.trim() === "") {
-        setError("Obsah nesmí být prázdný");
+        setError(copy.journal.quickModal.emptyError);
         setIsSubmitting(false);
         return;
       }
 
       if (content.trim().length > 2000) {
-        setError("Obsah je příliš dlouhý (maximum 2000 znaků)");
+        setError(copy.journal.quickModal.tooLongError);
         setIsSubmitting(false);
         return;
       }
@@ -72,7 +73,7 @@ export default function QuickJournalModal({
       }
 
       // Success
-      toast.success("Uloženo");
+      toast.success(copy.common.saved);
       setContent("");
       setVisibility("private");
       onClose();
@@ -92,9 +93,9 @@ export default function QuickJournalModal({
       <DialogContent className="sm:max-w-[480px]">
         <form onSubmit={handleSubmit} className="space-y-4">
             <DialogHeader>
-              <DialogTitle>Rychlý zápis</DialogTitle>
+              <DialogTitle>{copy.journal.quickModal.title}</DialogTitle>
               <DialogDescription>
-                Klidně jen 1 věta. Soukromé zůstane jen pro tebe.
+                {copy.journal.quickModal.description}
               </DialogDescription>
             </DialogHeader>
 
@@ -104,20 +105,20 @@ export default function QuickJournalModal({
                 htmlFor="content"
                 className="text-sm font-medium text-foreground"
               >
-                Obsah záznamu
+                {copy.journal.quickModal.contentLabel}
               </label>
               <Textarea
                 id="content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Tvůj zážitek z tohoto místa..."
+                placeholder={copy.journal.quickModal.contentPlaceholder}
                 rows={6}
                 disabled={isSubmitting}
                 className="resize-y"
               />
               <div className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">
-                  {content.trim().length} / 2000 znaků
+                  {copy.journal.quickModal.charCount(content.trim().length)}
                 </p>
                 {error && (
                   <p className="text-xs text-destructive">{error}</p>
@@ -128,7 +129,7 @@ export default function QuickJournalModal({
             {/* Visibility */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
-                Viditelnost
+                {copy.journal.quickModal.visibilityLabel}
               </label>
               <div className="space-y-2">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -142,7 +143,7 @@ export default function QuickJournalModal({
                     className="w-4 h-4"
                   />
                   <span className="text-sm">
-                    <strong>Soukromý</strong> - Jen pro tebe
+                    <strong>{copy.journal.quickModal.visibilityPrivate}</strong> - {copy.journal.quickModal.visibilityPrivateDesc}
                   </span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -156,7 +157,7 @@ export default function QuickJournalModal({
                     className="w-4 h-4"
                   />
                   <span className="text-sm">
-                    <strong>Veřejný</strong> - Uvidí všichni
+                    <strong>{copy.journal.quickModal.visibilityPublic}</strong> - {copy.journal.quickModal.visibilityPublicDesc}
                   </span>
                 </label>
               </div>
@@ -169,13 +170,13 @@ export default function QuickJournalModal({
                 onClick={onClose}
                 disabled={isSubmitting}
               >
-                Zrušit
+                {copy.common.cancel}
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting || content.trim() === ""}
               >
-                {isSubmitting ? "Ukládám..." : "Uložit"}
+                {isSubmitting ? copy.common.saving : copy.journal.quickModal.save}
               </Button>
             </DialogFooter>
           </form>

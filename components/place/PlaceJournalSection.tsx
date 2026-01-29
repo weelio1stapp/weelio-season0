@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import QuickJournalModal from "@/components/journal/QuickJournalModal";
+import { copy } from "@/lib/copy";
 
 type JournalEntry = {
   id: string;
@@ -60,14 +61,14 @@ export default function PlaceJournalSection({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-lg">Deník místa</CardTitle>
+              <CardTitle className="text-lg">{copy.journal.placeSection.title}</CardTitle>
               <CardDescription>
-                Veřejné zápisky od návštěvníků
+                {copy.journal.placeSection.description}
               </CardDescription>
             </div>
             {isAuthenticated && (
               <Button onClick={() => setIsModalOpen(true)} size="sm">
-                Napsat zápis
+                {copy.journal.placeSection.addButton}
               </Button>
             )}
           </div>
@@ -126,18 +127,18 @@ export default function PlaceJournalSection({
                 <NotebookPen className="w-6 h-6 text-muted-foreground" />
               </div>
               <p className="text-sm font-medium text-center mb-1">
-                Zatím žádné veřejné zápisky k tomuto místu.
+                {copy.journal.placeSection.emptyTitle}
               </p>
               <p className="text-sm text-muted-foreground text-center mb-6">
-                Buď první – stačí 1 věta a ostatním to pomůže.
+                {copy.journal.placeSection.emptyDesc}
               </p>
               {isAuthenticated ? (
                 <Button onClick={() => setIsModalOpen(true)}>
-                  Napsat první zápis
+                  {copy.journal.placeSection.addFirstButton}
                 </Button>
               ) : (
                 <Button variant="outline" asChild>
-                  <Link href="/leaderboard">Přihlásit se</Link>
+                  <Link href="/leaderboard">{copy.common.login}</Link>
                 </Button>
               )}
             </div>

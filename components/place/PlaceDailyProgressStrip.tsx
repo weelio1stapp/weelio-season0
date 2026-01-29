@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import VisitedButton from "@/components/VisitedButton";
 import QuickJournalModal from "@/components/journal/QuickJournalModal";
+import { copy } from "@/lib/copy";
 
 type PlaceDailyProgressStripProps = {
   placeId: string;
@@ -95,17 +96,17 @@ export default function PlaceDailyProgressStrip({
   const handleRiddlesScroll = () => {
     // Check if no attempts remaining
     if (riddleRemaining === 0) {
-      showHint("Dnes už nemáš pokusy 😅");
+      showHint(copy.place.hints.riddlesNoAttempts);
       return;
     }
 
     const element = document.getElementById("place-riddles");
     if (!element) {
-      showHint("Kešky zatím nejsou 🥲");
+      showHint(copy.place.hints.riddlesNone);
       return;
     }
 
-    showHint("Hádanky dole 👇");
+    showHint(copy.place.hints.riddlesDown);
     element.scrollIntoView({ behavior: "smooth", block: "start" });
     // Try to focus first input in riddles section after scroll
     setTimeout(() => {
@@ -121,16 +122,16 @@ export default function PlaceDailyProgressStrip({
   // Format riddle status text
   const riddleText =
     riddleRemaining === null
-      ? "Kešky"
+      ? copy.place.daily.riddlesLabel
       : riddleRemaining === 0
-        ? "Kešky (dnes hotovo)"
-        : `Kešky (${riddleRemaining}/5)`;
+        ? copy.place.daily.riddlesDoneToday
+        : `${copy.place.daily.riddlesLabel} (${copy.riddles.badge.remaining(riddleRemaining, copy.riddles.attempts.limit)})`;
 
   return (
     <>
       <Card className="mt-6">
         <CardContent className="pt-6">
-          <h3 className="text-sm font-semibold mb-3">Dnes na tomhle místě</h3>
+          <h3 className="text-sm font-semibold mb-3">{copy.place.daily.title}</h3>
 
           {/* Hint text */}
           {hint && (
@@ -145,11 +146,11 @@ export default function PlaceDailyProgressStrip({
               <div className="flex items-center gap-2 text-sm">
                 <MapPinCheck className="w-4 h-4 opacity-60" />
                 <span className="opacity-80">
-                  {alreadyVisited ? "✓ Navštíveno" : "○ Navštívit"}
+                  {alreadyVisited ? copy.place.daily.visitedStatus : copy.place.daily.notVisitedStatus}
                 </span>
               </div>
               {alreadyVisited ? (
-                <div onClick={() => showHint("Dnes už máš zapsáno 🙃")}>
+                <div onClick={() => showHint(copy.place.hints.visitAlready)}>
                   <VisitedButton
                     placeId={placeId}
                     alreadyVisited={alreadyVisited}
@@ -160,7 +161,7 @@ export default function PlaceDailyProgressStrip({
                       showHint(
                         xpDelta > 0
                           ? `+${xpDelta} XP • streak ${streakWeeks} 🔥`
-                          : `Návštěva zaznamenána ✅`
+                          : copy.place.hints.visitLogged
                       )
                     }
                   />
@@ -175,7 +176,7 @@ export default function PlaceDailyProgressStrip({
                     showHint(
                       xpDelta > 0
                         ? `+${xpDelta} XP • streak ${streakWeeks} 🔥`
-                        : `Návštěva zaznamenána ✅`
+                        : copy.place.hints.visitLogged
                     )
                   }
                 />
@@ -189,13 +190,13 @@ export default function PlaceDailyProgressStrip({
               <div className="flex items-center gap-2 text-sm">
                 <NotebookPen className="w-4 h-4 opacity-60" />
                 <span className="opacity-80">
-                  {journalSavedToday ? "✓ Zapsáno" : "○ Zapsat"}
+                  {journalSavedToday ? copy.place.daily.journalSavedStatus : copy.place.daily.journalNotSavedStatus}
                 </span>
               </div>
               {journalSavedToday ? (
-                <div onClick={() => showHint("Už jsi dnes zapsal 😉")}>
+                <div onClick={() => showHint(copy.place.hints.journalAlready)}>
                   <Button variant="secondary" size="sm" disabled>
-                    Hotovo
+                    {copy.common.done}
                   </Button>
                 </div>
               ) : (
@@ -204,7 +205,7 @@ export default function PlaceDailyProgressStrip({
                   size="sm"
                   onClick={() => setIsJournalOpen(true)}
                 >
-                  Napsat
+                  {copy.place.daily.journalCta}
                 </Button>
               )}
             </div>
@@ -223,7 +224,7 @@ export default function PlaceDailyProgressStrip({
                 onClick={handleRiddlesScroll}
                 disabled={riddleRemaining === 0}
               >
-                Na kešky
+                {copy.place.daily.riddlesCta}
               </Button>
             </div>
           </div>
@@ -240,7 +241,7 @@ export default function PlaceDailyProgressStrip({
           const journalKey = `weelio_journal_saved_${placeId}_${today}`;
           localStorage.setItem(journalKey, "1");
           setJournalSavedToday(true);
-          showHint("Uloženo ✅");
+          showHint(copy.common.savedCheck);
         }}
       />
     </>

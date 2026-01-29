@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import VisitedButton from "@/components/VisitedButton";
 import QuickJournalModal from "@/components/journal/QuickJournalModal";
+import { copy } from "@/lib/copy";
 
 type PlaceActionBarProps = {
   placeId: string;
@@ -87,17 +88,17 @@ export default function PlaceActionBar({
   const scrollToRiddles = () => {
     // Check if no attempts remaining
     if (riddleRemaining === 0) {
-      showHint("Dnes už nemáš pokusy 😅");
+      showHint(copy.place.hints.riddlesNoAttempts);
       return;
     }
 
     const element = document.getElementById("place-riddles");
     if (!element) {
-      showHint("Kešky zatím nejsou 🥲");
+      showHint(copy.place.hints.riddlesNone);
       return;
     }
 
-    showHint("Hádanky dole 👇");
+    showHint(copy.place.hints.riddlesDown);
     element.scrollIntoView({ behavior: "smooth", block: "start" });
     // Try to focus first input in riddles section after scroll
     setTimeout(() => {
@@ -115,7 +116,7 @@ export default function PlaceActionBar({
           <div className="max-w-5xl mx-auto px-4 py-3">
             <div className="flex gap-2">
               <Button asChild size="sm" className="flex-1">
-                <Link href="/leaderboard">Přihlásit se</Link>
+                <Link href="/leaderboard">{copy.common.login}</Link>
               </Button>
               <Button
                 variant="outline"
@@ -123,7 +124,7 @@ export default function PlaceActionBar({
                 className="flex-1"
                 onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               >
-                Procházet
+                {copy.common.browse}
               </Button>
             </div>
           </div>
@@ -148,7 +149,7 @@ export default function PlaceActionBar({
             {alreadyVisited ? (
               <div
                 className="flex-1"
-                onClick={() => showHint("Dnes už máš zapsáno 🙃")}
+                onClick={() => showHint(copy.place.hints.visitAlready)}
               >
                 <VisitedButton
                   placeId={placeId}
@@ -159,7 +160,7 @@ export default function PlaceActionBar({
                     showHint(
                       xpDelta > 0
                         ? `+${xpDelta} XP • streak ${streakWeeks} 🔥`
-                        : `Návštěva zaznamenána ✅`
+                        : copy.place.hints.visitLogged
                     )
                   }
                 />
@@ -174,7 +175,7 @@ export default function PlaceActionBar({
                     showHint(
                       xpDelta > 0
                         ? `+${xpDelta} XP • streak ${streakWeeks} 🔥`
-                        : `Návštěva zaznamenána ✅`
+                        : copy.place.hints.visitLogged
                     )
                   }
                 />
@@ -185,7 +186,7 @@ export default function PlaceActionBar({
             {journalSavedToday ? (
               <div
                 className="flex-1"
-                onClick={() => showHint("Už jsi dnes zapsal 😉")}
+                onClick={() => showHint(copy.place.hints.journalAlready)}
               >
                 <Button
                   variant="secondary"
@@ -194,7 +195,7 @@ export default function PlaceActionBar({
                   disabled
                 >
                   <NotebookPen className="w-4 h-4 mr-1" />
-                  ✓ Zapsáno
+                  {copy.place.actionbar.journalDone}
                 </Button>
               </div>
             ) : (
@@ -205,7 +206,7 @@ export default function PlaceActionBar({
                 onClick={() => setIsJournalOpen(true)}
               >
                 <NotebookPen className="w-4 h-4 mr-1" />
-                Zapsat
+                {copy.place.actionbar.journal}
               </Button>
             )}
 
@@ -217,10 +218,10 @@ export default function PlaceActionBar({
               onClick={scrollToRiddles}
             >
               <KeyRound className="w-4 h-4 mr-1" />
-              Keška
+              {copy.place.actionbar.riddle}
               {riddleRemaining !== null && (
                 <Badge variant="secondary" className="ml-2">
-                  {riddleRemaining}/5
+                  {copy.riddles.badge.remaining(riddleRemaining, copy.riddles.attempts.limit)}
                 </Badge>
               )}
             </Button>
@@ -238,7 +239,7 @@ export default function PlaceActionBar({
           const journalKey = `weelio_journal_saved_${placeId}_${today}`;
           localStorage.setItem(journalKey, "1");
           setJournalSavedToday(true);
-          showHint("Uloženo ✅");
+          showHint(copy.common.savedCheck);
         }}
       />
     </>

@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import CreateRiddleModal from "./CreateRiddleModal";
+import { copy } from "@/lib/copy";
 
 type Riddle = {
   id: string;
@@ -56,7 +57,7 @@ export default function PlaceRiddles({
     if (!answer) {
       setFeedback({
         ...feedback,
-        [riddleId]: { type: "error", message: "Zadej odpověď" },
+        [riddleId]: { type: "error", message: copy.riddles.emptyAnswer },
       });
       return;
     }
@@ -79,7 +80,7 @@ export default function PlaceRiddles({
       const data = await response.json();
 
       if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Nepodařilo se ověřit odpověď");
+        throw new Error(data.error || copy.riddles.verifyFailed);
       }
 
       if (data.correct) {
@@ -89,7 +90,7 @@ export default function PlaceRiddles({
           ...feedback,
           [riddleId]: {
             type: "success",
-            message: `Správně! +${data.xp_delta} XP`,
+            message: copy.riddles.correctWithXp(data.xp_delta),
             xp: data.xp_delta,
           },
         });
@@ -103,20 +104,20 @@ export default function PlaceRiddles({
         // Incorrect
         const attemptsText =
           data.attempts_left === 0
-            ? "Dnes už žádné pokusy"
+            ? copy.riddles.noAttemptsLeft
             : `Zbývá ${data.attempts_left} ${
                 data.attempts_left === 1
-                  ? "pokus"
+                  ? copy.riddles.attempts.singular
                   : data.attempts_left < 5
-                  ? "pokusy"
-                  : "pokusů"
+                  ? copy.riddles.attempts.few
+                  : copy.riddles.attempts.many
               }`;
 
         setFeedback({
           ...feedback,
           [riddleId]: {
             type: "error",
-            message: `Špatně. ${attemptsText}`,
+            message: `${copy.riddles.incorrect}. ${attemptsText}`,
           },
         });
       }
@@ -136,8 +137,8 @@ export default function PlaceRiddles({
       <section id="place-riddles" className="scroll-mt-24">
         <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="text-lg">Kešky na místě</CardTitle>
-          <CardDescription>Vyřeš hádanky a získej XP body</CardDescription>
+          <CardTitle className="text-lg">{copy.riddles.titleOnPlace}</CardTitle>
+          <CardDescription>{copy.riddles.description}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed rounded-lg bg-muted/40">
@@ -145,13 +146,13 @@ export default function PlaceRiddles({
               <KeyRound className="w-6 h-6 text-muted-foreground" />
             </div>
             <p className="text-sm font-medium text-center mb-1">
-              Přihlaš se pro řešení kešek
+              {copy.riddles.loginPrompt}
             </p>
             <p className="text-sm text-muted-foreground text-center mb-6">
-              Získej XP body za správné odpovědi.
+              {copy.riddles.loginDesc}
             </p>
             <Button variant="outline" asChild>
-              <Link href="/leaderboard">Přihlásit se</Link>
+              <Link href="/leaderboard">{copy.common.login}</Link>
             </Button>
           </div>
         </CardContent>
@@ -166,14 +167,14 @@ export default function PlaceRiddles({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg">Kešky na místě</CardTitle>
+            <CardTitle className="text-lg">{copy.riddles.titleOnPlace}</CardTitle>
             <CardDescription>
-              Vyřeš hádanky a získej XP body
+              {copy.riddles.description}
             </CardDescription>
           </div>
           {isPlaceAuthor && (
             <Button onClick={() => setIsCreateModalOpen(true)} size="sm">
-              Přidat kešku
+              {copy.riddles.addRiddle}
             </Button>
           )}
         </div>
@@ -207,7 +208,7 @@ export default function PlaceRiddles({
                   {isSolved ? (
                     <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
                       <p className="text-sm text-green-700 dark:text-green-400 font-medium">
-                        ✅ Splněno
+                        {copy.riddles.solved}
                       </p>
                     </div>
                   ) : (
@@ -224,8 +225,8 @@ export default function PlaceRiddles({
                           }
                           placeholder={
                             riddle.answer_type === "number"
-                              ? "Zadej číslo..."
-                              : "Zadej odpověď..."
+                              ? copy.riddles.inputPlaceholderNumber
+                              : copy.riddles.inputPlaceholderText
                           }
                           disabled={isSubmitting}
                           className="flex-1"
@@ -237,7 +238,7 @@ export default function PlaceRiddles({
                           disabled={isSubmitting}
                           size="sm"
                         >
-                          {isSubmitting ? "..." : "Zkusit"}
+                          {isSubmitting ? "..." : copy.riddles.submitButton}
                         </Button>
                       </div>
 

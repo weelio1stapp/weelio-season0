@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { copy } from "@/lib/copy";
 
 interface VisitedButtonProps {
   placeId: string;
@@ -91,20 +92,20 @@ export default function VisitedButton({
       // Handle different response codes
       if (response.status === 409 || data.code === "ALREADY_VISITED_TODAY") {
         // Already visited today
-        toast.info("Dnes už máš zapsáno 🙃");
+        toast.info(copy.visit.toast.alreadyVisited);
         setVisited(true);
         return;
       }
 
       if (response.status === 401 || data.code === "UNAUTHORIZED") {
         // Not authenticated
-        toast.error("Musíš být přihlášen");
+        toast.error(copy.visit.toast.mustLogin);
         return;
       }
 
       if (!response.ok || !data.ok) {
         // Other error
-        toast.error("Nepodařilo se zapsat návštěvu");
+        toast.error(copy.visit.toast.failed);
         return;
       }
 
@@ -118,7 +119,7 @@ export default function VisitedButton({
           `+${xpDelta} XP • streak ${streakWeeks} 🔥 (best ${bestStreakWeeks})`
         );
       } else {
-        toast.success("Návštěva zaznamenána ✅");
+        toast.success(copy.visit.toast.recorded);
       }
 
       setVisited(true);
@@ -133,7 +134,7 @@ export default function VisitedButton({
       }
     } catch (err) {
       console.error("Failed to mark visited:", err);
-      toast.error("Nepodařilo se zapsat návštěvu");
+      toast.error(copy.visit.toast.failed);
     } finally {
       setPending(false);
     }
@@ -172,7 +173,7 @@ export default function VisitedButton({
               ></path>
             </svg>
           )}
-          {pending ? "..." : visited ? "✓ Dnes hotovo" : "Visit"}
+          {pending ? "..." : visited ? copy.common.todayDone : copy.visit.button.compact}
         </Button>
 
         {/* Journal Prompt Modal */}
@@ -271,7 +272,7 @@ export default function VisitedButton({
                 ></path>
               </svg>
             )}
-            {pending ? "Zaznamenávám…" : visited ? "✓ Dnes už máš hotovo" : "Byl jsem tady"}
+            {pending ? copy.visit.button.recording : visited ? copy.visit.button.todayDone : copy.visit.button.default}
           </span>
           {visited && (
             <span className="text-xs opacity-70">{todayFormatted}</span>
