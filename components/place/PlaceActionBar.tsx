@@ -22,7 +22,21 @@ export default function PlaceActionBar({
   const [isJournalOpen, setIsJournalOpen] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const [riddleRemaining, setRiddleRemaining] = useState<number | null>(null);
+  const [journalSavedToday, setJournalSavedToday] = useState(false);
   const hintTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Check if journal was saved today (localStorage)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const journalKey = `weelio_journal_saved_${placeId}_${today}`;
+    const saved = localStorage.getItem(journalKey);
+
+    if (saved === "1") {
+      setJournalSavedToday(true);
+    }
+  }, [isAuthenticated, placeId]);
 
   // Fetch riddle attempts status
   useEffect(() => {
@@ -160,15 +174,32 @@ export default function PlaceActionBar({
             )}
 
             {/* Journal Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
-              onClick={() => setIsJournalOpen(true)}
-            >
-              <NotebookPen className="w-4 h-4 mr-1" />
-              Zapsat
-            </Button>
+            {journalSavedToday ? (
+              <div
+                className="flex-1"
+                onClick={() => showHint("Už jsi dnes zapsal 😉")}
+              >
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full"
+                  disabled
+                >
+                  <NotebookPen className="w-4 h-4 mr-1" />
+                  ✓ Zapsáno
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => setIsJournalOpen(true)}
+              >
+                <NotebookPen className="w-4 h-4 mr-1" />
+                Zapsat
+              </Button>
+            )}
 
             {/* Riddles Button */}
             <Button
@@ -194,7 +225,13 @@ export default function PlaceActionBar({
         placeId={placeId}
         isOpen={isJournalOpen}
         onClose={() => setIsJournalOpen(false)}
-        onSuccess={() => showHint("Uloženo ✅")}
+        onSuccess={() => {
+          const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+          const journalKey = `weelio_journal_saved_${placeId}_${today}`;
+          localStorage.setItem(journalKey, "1");
+          setJournalSavedToday(true);
+          showHint("Uloženo ✅");
+        }}
       />
     </>
   );
