@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +31,6 @@ export default function QuickJournalModal({
   const [visibility, setVisibility] = useState<"private" | "public">("private");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,19 +70,16 @@ export default function QuickJournalModal({
       }
 
       // Success
-      setShowSuccess(true);
+      toast.success("Uloženo");
       setContent("");
       setVisibility("private");
-
-      // Wait a bit to show success message, then close and refresh
-      setTimeout(() => {
-        setShowSuccess(false);
-        onClose();
-        router.refresh();
-      }, 800);
+      onClose();
+      router.refresh();
     } catch (err: any) {
       console.error("Journal create error:", err);
-      setError(err.message || "Došlo k neočekávané chybě");
+      const errorMessage = err.message || "Uložení se nepovedlo";
+      setError(errorMessage);
+      toast.error(errorMessage);
       setIsSubmitting(false);
     }
   };
@@ -90,13 +87,7 @@ export default function QuickJournalModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[480px]">
-        {/* Success Message */}
-        {showSuccess ? (
-          <div className="p-6 text-center">
-            <p className="text-lg text-green-700 font-medium">✅ Uloženo</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
             <DialogHeader>
               <DialogTitle>Rychlý zápis</DialogTitle>
               <DialogDescription>
@@ -185,7 +176,6 @@ export default function QuickJournalModal({
               </Button>
             </DialogFooter>
           </form>
-        )}
       </DialogContent>
     </Dialog>
   );

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import Card from "@/components/Card";
 import {
   AlertDialog,
@@ -59,9 +60,12 @@ export default function MyJournalList({ entries: initialEntries, placeNames }: P
 
       // Optimistically remove from state
       setEntries((prev) => prev.filter((entry) => entry.id !== id));
+      toast.success("Zápis smazán");
     } catch (err: any) {
       console.error("Delete error:", err);
-      setDeleteError(err.message || "Došlo k chybě při mazání");
+      const errorMessage = err.message || "Smazání se nepovedlo";
+      setDeleteError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setDeletingId(null);
       setPendingDeleteId(null);

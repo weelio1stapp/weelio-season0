@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -96,11 +97,14 @@ export default function ProfileEditForm({
       }
 
       // Success - redirect to profile page
+      toast.success("Profil uložen");
       router.push("/me");
       router.refresh();
     } catch (err: any) {
       console.error("Profile update error:", err);
-      setError(err.message || "Došlo k neočekávané chybě");
+      const errorMessage = err.message || "Uložení profilu se nepovedlo";
+      setError(errorMessage);
+      toast.error(errorMessage);
       setIsSubmitting(false);
     }
   };

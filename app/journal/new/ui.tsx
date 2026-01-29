@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,11 +53,14 @@ export default function JournalNewForm({ placeId }: JournalNewFormProps) {
       }
 
       // Success - redirect to /me
+      toast.success("Zápis uložen");
       router.push("/me");
       router.refresh();
     } catch (err: any) {
       console.error("Journal create error:", err);
-      setError(err.message || "Došlo k neočekávané chybě");
+      const errorMessage = err.message || "Uložení se nepovedlo";
+      setError(errorMessage);
+      toast.error(errorMessage);
       setIsSubmitting(false);
     }
   };
