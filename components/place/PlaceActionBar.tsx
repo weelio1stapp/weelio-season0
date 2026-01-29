@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { NotebookPen, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import VisitedButton from "@/components/VisitedButton";
 import QuickJournalModal from "@/components/journal/QuickJournalModal";
 
@@ -20,7 +21,32 @@ export default function PlaceActionBar({
 }: PlaceActionBarProps) {
   const [isJournalOpen, setIsJournalOpen] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
+  const [riddleRemaining, setRiddleRemaining] = useState<number | null>(null);
   const hintTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch riddle attempts status
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const fetchRiddleStatus = async () => {
+      try {
+        const response = await fetch(
+          `/api/riddles/status?placeId=${encodeURIComponent(placeId)}`
+        );
+        if (!response.ok) return; // Silently ignore errors
+
+        const data = await response.json();
+        if (data.ok && typeof data.remaining === "number") {
+          setRiddleRemaining(data.remaining);
+        }
+      } catch (error) {
+        // Silently ignore fetch errors
+        console.error("Failed to fetch riddle status:", error);
+      }
+    };
+
+    fetchRiddleStatus();
+  }, [isAuthenticated, placeId]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -45,6 +71,12 @@ export default function PlaceActionBar({
   };
 
   const scrollToRiddles = () => {
+    // Check if no attempts remaining
+    if (riddleRemaining === 0) {
+      showHint("Dnes už nemáš pokusy 😅");
+      return;
+    }
+
     const element = document.getElementById("place-riddles");
     if (!element) {
       showHint("Kešky zatím nejsou 🥲");
@@ -147,6 +179,11 @@ export default function PlaceActionBar({
             >
               <KeyRound className="w-4 h-4 mr-1" />
               Keška
+              {riddleRemaining !== null && (
+                <Badge variant="secondary" className="ml-2">
+                  {riddleRemaining}/5
+                </Badge>
+              )}
             </Button>
           </div>
         </div>
