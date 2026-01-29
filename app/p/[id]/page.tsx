@@ -11,6 +11,7 @@ import PlaceGallery from "@/components/PlaceGallery";
 import PlaceAuthorActions from "@/components/PlaceAuthorActions";
 import VisitedButton from "@/components/VisitedButton";
 import PlaceNextSteps from "@/components/place/PlaceNextSteps";
+import PlaceActionBar from "@/components/place/PlaceActionBar";
 import NextStepsSection from "@/components/place/NextStepsSection";
 import PlaceJournalSection from "@/components/place/PlaceJournalSection";
 import PlaceRiddles from "@/components/place/PlaceRiddles";
@@ -142,7 +143,7 @@ export default async function PlaceDetailPage({
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
+    <main className="mx-auto max-w-5xl px-4 py-8 pb-24 md:pb-8">
       <div className="flex items-center justify-between gap-4 mb-4">
         <Link href="/places" className="text-sm opacity-80 hover:opacity-100">
           ← Zpět na místa
@@ -331,6 +332,13 @@ export default async function PlaceDetailPage({
           currentCoverPath={place.cover_storage_path}
         />
       </div>
+
+      {/* Mobile Action Bar */}
+      <PlaceActionBar
+        placeId={place.id}
+        isAuthenticated={!!currentUserId}
+        alreadyVisited={alreadyVisited}
+      />
     </main>
   );
 }
