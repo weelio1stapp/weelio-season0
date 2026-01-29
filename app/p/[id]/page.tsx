@@ -10,6 +10,7 @@ import { getWalkerRank, getAuthorRank, formatRank } from "@/lib/utils/rank";
 import PlaceGallery from "@/components/PlaceGallery";
 import PlaceAuthorActions from "@/components/PlaceAuthorActions";
 import VisitedButton from "@/components/VisitedButton";
+import PlaceNextSteps from "@/components/place/PlaceNextSteps";
 import NextStepsSection from "@/components/place/NextStepsSection";
 import PlaceJournalSection from "@/components/place/PlaceJournalSection";
 import PlaceRiddles from "@/components/place/PlaceRiddles";
@@ -184,12 +185,12 @@ export default async function PlaceDetailPage({
         <p className="mt-2 text-sm opacity-80">{place.why}</p>
       </div>
 
-      {/* Visited Button */}
-      {currentUserId && (
-        <div className="mt-6 flex justify-center">
-          <VisitedButton placeId={place.id} alreadyVisited={alreadyVisited} />
-        </div>
-      )}
+      {/* Quick Actions CTA */}
+      <PlaceNextSteps
+        placeId={place.id}
+        isAuthenticated={!!currentUserId}
+        alreadyVisited={alreadyVisited}
+      />
 
       {/* Next Steps Section */}
       <NextStepsSection

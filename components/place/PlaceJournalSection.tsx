@@ -55,7 +55,8 @@ export default function PlaceJournalSection({
 
   return (
     <>
-      <Card className="mt-6">
+      <section id="place-journal" className="scroll-mt-24">
+        <Card className="mt-6">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -143,6 +144,7 @@ export default function PlaceJournalSection({
           )}
         </CardContent>
       </Card>
+      </section>
 
       {/* Quick Add Modal */}
       <QuickJournalModal

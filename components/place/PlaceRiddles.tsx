@@ -133,7 +133,8 @@ export default function PlaceRiddles({
 
   if (!isAuthenticated) {
     return (
-      <Card className="mt-6">
+      <section id="place-riddles" className="scroll-mt-24">
+        <Card className="mt-6">
         <CardHeader>
           <CardTitle className="text-lg">Kešky na místě</CardTitle>
           <CardDescription>Vyřeš hádanky a získej XP body</CardDescription>
@@ -155,11 +156,13 @@ export default function PlaceRiddles({
           </div>
         </CardContent>
       </Card>
+      </section>
     );
   }
 
   return (
-    <Card className="mt-6">
+    <section id="place-riddles" className="scroll-mt-24">
+      <Card className="mt-6">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -302,5 +305,6 @@ export default function PlaceRiddles({
         />
       )}
     </Card>
+    </section>
   );
 }
