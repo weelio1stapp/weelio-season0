@@ -19,6 +19,7 @@ interface VisitedButtonProps {
   alreadyVisited: boolean;
   variant?: "default" | "compact";
   disabled?: boolean;
+  suppressJournalPrompt?: boolean;
   onVisited?: (info: {
     xpDelta: number;
     streakWeeks: number;
@@ -33,6 +34,7 @@ export default function VisitedButton({
   alreadyVisited: initialVisited,
   variant = "default",
   disabled = false,
+  suppressJournalPrompt = false,
   onVisited,
 }: VisitedButtonProps) {
   const router = useRouter();
@@ -125,8 +127,8 @@ export default function VisitedButton({
       // Call onVisited callback if provided
       onVisited?.({ xpDelta, streakWeeks, bestStreakWeeks });
 
-      // Show journal prompt if not hidden today
-      if (shouldShowJournalPrompt()) {
+      // Show journal prompt if not hidden today and not suppressed
+      if (!suppressJournalPrompt && shouldShowJournalPrompt()) {
         setShowJournalPrompt(true);
       }
     } catch (err) {

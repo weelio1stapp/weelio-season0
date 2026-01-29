@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { MapPinCheck, NotebookPen, KeyRound } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import VisitedButton from "@/components/VisitedButton";
 import QuickJournalModal from "@/components/journal/QuickJournalModal";
 
 type PlaceDailyProgressStripProps = {
@@ -17,21 +17,13 @@ type PlaceDailyProgressStripProps = {
 export default function PlaceDailyProgressStrip({
   placeId,
   isAuthenticated,
-  alreadyVisited: initialVisited,
+  alreadyVisited,
 }: PlaceDailyProgressStripProps) {
-  const router = useRouter();
-  const [visited, setVisited] = useState(initialVisited);
-  const [visitPending, setVisitPending] = useState(false);
   const [journalSavedToday, setJournalSavedToday] = useState(false);
   const [isJournalOpen, setIsJournalOpen] = useState(false);
   const [riddleRemaining, setRiddleRemaining] = useState<number | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const hintTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Update visited state when prop changes
-  useEffect(() => {
-    setVisited(initialVisited);
-  }, [initialVisited]);
 
   // Check if journal was saved today (localStorage)
   useEffect(() => {
@@ -99,63 +91,6 @@ export default function PlaceDailyProgressStrip({
     }, ms);
   };
 
-  // Handle visit action (POST /api/visits)
-  const handleVisit = async () => {
-    if (visited || visitPending) return;
-
-    setVisitPending(true);
-
-    try {
-      const response = await fetch("/api/visits", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          placeId,
-          source: "progress-strip",
-        }),
-      });
-
-      const data = await response.json();
-
-      // Handle different response codes
-      if (response.status === 409 || data.code === "ALREADY_VISITED_TODAY") {
-        showHint("Dnes už máš zapsáno 🙃");
-        setVisited(true);
-        return;
-      }
-
-      if (response.status === 401 || data.code === "UNAUTHORIZED") {
-        showHint("Musíš být přihlášen");
-        return;
-      }
-
-      if (!response.ok || !data.ok) {
-        showHint("Nepodařilo se zapsat návštěvu");
-        return;
-      }
-
-      // Success
-      const xpDelta = data.xp_delta ?? 0;
-      const streakWeeks = data.streak_weeks ?? 0;
-
-      if (xpDelta > 0) {
-        showHint(`+${xpDelta} XP • streak ${streakWeeks} 🔥`);
-      } else {
-        showHint("Návštěva zaznamenána ✅");
-      }
-
-      setVisited(true);
-      router.refresh();
-    } catch (err) {
-      console.error("Failed to mark visited:", err);
-      showHint("Nepodařilo se zapsat návštěvu");
-    } finally {
-      setVisitPending(false);
-    }
-  };
-
   // Handle riddles scroll
   const handleRiddlesScroll = () => {
     // Check if no attempts remaining
@@ -199,7 +134,7 @@ export default function PlaceDailyProgressStrip({
 
           {/* Hint text */}
           {hint && (
-            <p className="mb-3 text-xs text-muted-foreground animate-in fade-in duration-200">
+            <p className="mb-3 text-xs text-muted-foreground text-center animate-in fade-in duration-200">
               {hint}
             </p>
           )}
@@ -210,27 +145,40 @@ export default function PlaceDailyProgressStrip({
               <div className="flex items-center gap-2 text-sm">
                 <MapPinCheck className="w-4 h-4 opacity-60" />
                 <span className="opacity-80">
-                  {visited ? "✓ Navštíveno" : "○ Navštívit"}
+                  {alreadyVisited ? "✓ Navštíveno" : "○ Navštívit"}
                 </span>
               </div>
-              {visited ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled
-                  onClick={() => showHint("Dnes už máš zapsáno 🙃")}
-                >
-                  Hotovo
-                </Button>
+              {alreadyVisited ? (
+                <div onClick={() => showHint("Dnes už máš zapsáno 🙃")}>
+                  <VisitedButton
+                    placeId={placeId}
+                    alreadyVisited={alreadyVisited}
+                    variant="compact"
+                    disabled={true}
+                    suppressJournalPrompt={true}
+                    onVisited={({ xpDelta, streakWeeks }) =>
+                      showHint(
+                        xpDelta > 0
+                          ? `+${xpDelta} XP • streak ${streakWeeks} 🔥`
+                          : `Návštěva zaznamenána ✅`
+                      )
+                    }
+                  />
+                </div>
               ) : (
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleVisit}
-                  disabled={visitPending}
-                >
-                  {visitPending ? "..." : "Zapsat"}
-                </Button>
+                <VisitedButton
+                  placeId={placeId}
+                  alreadyVisited={alreadyVisited}
+                  variant="compact"
+                  suppressJournalPrompt={true}
+                  onVisited={({ xpDelta, streakWeeks }) =>
+                    showHint(
+                      xpDelta > 0
+                        ? `+${xpDelta} XP • streak ${streakWeeks} 🔥`
+                        : `Návštěva zaznamenána ✅`
+                    )
+                  }
+                />
               )}
             </div>
 
@@ -245,14 +193,11 @@ export default function PlaceDailyProgressStrip({
                 </span>
               </div>
               {journalSavedToday ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled
-                  onClick={() => showHint("Už jsi dnes zapsal 😉")}
-                >
-                  Hotovo
-                </Button>
+                <div onClick={() => showHint("Už jsi dnes zapsal 😉")}>
+                  <Button variant="secondary" size="sm" disabled>
+                    Hotovo
+                  </Button>
+                </div>
               ) : (
                 <Button
                   variant="outline"
@@ -278,7 +223,7 @@ export default function PlaceDailyProgressStrip({
                 onClick={handleRiddlesScroll}
                 disabled={riddleRemaining === 0}
               >
-                {riddleRemaining === 0 ? "Hotovo" : "Jít"}
+                Na kešky
               </Button>
             </div>
           </div>
