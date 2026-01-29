@@ -45,18 +45,21 @@ export default function PlaceActionBar({
   };
 
   const scrollToRiddles = () => {
-    showHint("Hádanky dole 👇");
     const element = document.getElementById("place-riddles");
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
-      // Try to focus first input in riddles section after scroll
-      setTimeout(() => {
-        const input = element.querySelector("input");
-        if (input) {
-          input.focus();
-        }
-      }, 500);
+    if (!element) {
+      showHint("Kešky zatím nejsou 🥲");
+      return;
     }
+
+    showHint("Hádanky dole 👇");
+    element.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Try to focus first input in riddles section after scroll
+    setTimeout(() => {
+      const input = element.querySelector("input");
+      if (input) {
+        input.focus();
+      }
+    }, 500);
   };
 
   if (!isAuthenticated) {
@@ -96,16 +99,33 @@ export default function PlaceActionBar({
 
           <div className="flex gap-2">
             {/* Visit Button */}
-            <div className="flex-1">
-              <VisitedButton
-                placeId={placeId}
-                alreadyVisited={alreadyVisited}
-                variant="compact"
-                onVisited={({ xpDelta, streakWeeks }) =>
-                  showHint(`+${xpDelta} XP • streak ${streakWeeks} 🔥`)
-                }
-              />
-            </div>
+            {alreadyVisited ? (
+              <div
+                className="flex-1"
+                onClick={() => showHint("Dnes už máš zapsáno 🙃")}
+              >
+                <VisitedButton
+                  placeId={placeId}
+                  alreadyVisited={alreadyVisited}
+                  variant="compact"
+                  disabled={true}
+                  onVisited={({ xpDelta, streakWeeks }) =>
+                    showHint(`+${xpDelta} XP • streak ${streakWeeks} 🔥`)
+                  }
+                />
+              </div>
+            ) : (
+              <div className="flex-1">
+                <VisitedButton
+                  placeId={placeId}
+                  alreadyVisited={alreadyVisited}
+                  variant="compact"
+                  onVisited={({ xpDelta, streakWeeks }) =>
+                    showHint(`+${xpDelta} XP • streak ${streakWeeks} 🔥`)
+                  }
+                />
+              </div>
+            )}
 
             {/* Journal Button */}
             <Button

@@ -18,6 +18,7 @@ interface VisitedButtonProps {
   placeId: string;
   alreadyVisited: boolean;
   variant?: "default" | "compact";
+  disabled?: boolean;
   onVisited?: (info: {
     xpDelta: number;
     streakWeeks: number;
@@ -31,6 +32,7 @@ export default function VisitedButton({
   placeId,
   alreadyVisited: initialVisited,
   variant = "default",
+  disabled = false,
   onVisited,
 }: VisitedButtonProps) {
   const router = useRouter();
@@ -141,7 +143,7 @@ export default function VisitedButton({
       <>
         <Button
           onClick={handleClick}
-          disabled={visited || pending}
+          disabled={disabled || visited || pending}
           size="sm"
           variant={visited ? "secondary" : "default"}
           className="w-full"
@@ -168,7 +170,7 @@ export default function VisitedButton({
               ></path>
             </svg>
           )}
-          {pending ? "..." : visited ? "✓ Visit" : "Visit"}
+          {pending ? "..." : visited ? "✓ Dnes hotovo" : "Visit"}
         </Button>
 
         {/* Journal Prompt Modal */}
