@@ -18,12 +18,14 @@ type QuickJournalModalProps = {
   placeId: string;
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 };
 
 export default function QuickJournalModal({
   placeId,
   isOpen,
   onClose,
+  onSuccess,
 }: QuickJournalModalProps) {
   const router = useRouter();
 
@@ -75,6 +77,7 @@ export default function QuickJournalModal({
       setVisibility("private");
       onClose();
       router.refresh();
+      onSuccess?.();
     } catch (err: any) {
       console.error("Journal create error:", err);
       const errorMessage = err.message || "Uložení se nepovedlo";

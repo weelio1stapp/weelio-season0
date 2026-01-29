@@ -18,6 +18,11 @@ interface VisitedButtonProps {
   placeId: string;
   alreadyVisited: boolean;
   variant?: "default" | "compact";
+  onVisited?: (info: {
+    xpDelta: number;
+    streakWeeks: number;
+    bestStreakWeeks: number;
+  }) => void;
 }
 
 const JOURNAL_NUDGE_KEY = "weelio_journal_nudge_hide_until";
@@ -26,6 +31,7 @@ export default function VisitedButton({
   placeId,
   alreadyVisited: initialVisited,
   variant = "default",
+  onVisited,
 }: VisitedButtonProps) {
   const router = useRouter();
   const [visited, setVisited] = useState(initialVisited);
@@ -113,6 +119,9 @@ export default function VisitedButton({
 
       setVisited(true);
       router.refresh();
+
+      // Call onVisited callback if provided
+      onVisited?.({ xpDelta, streakWeeks, bestStreakWeeks });
 
       // Show journal prompt if not hidden today
       if (shouldShowJournalPrompt()) {

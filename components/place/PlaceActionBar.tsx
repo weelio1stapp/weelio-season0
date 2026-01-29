@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { NotebookPen, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,33 @@ export default function PlaceActionBar({
   alreadyVisited,
 }: PlaceActionBarProps) {
   const [isJournalOpen, setIsJournalOpen] = useState(false);
+  const [hint, setHint] = useState<string | null>(null);
+  const hintTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hintTimeoutRef.current) {
+        clearTimeout(hintTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const showHint = (text: string, ms = 2200) => {
+    // Clear existing timeout
+    if (hintTimeoutRef.current) {
+      clearTimeout(hintTimeoutRef.current);
+    }
+
+    setHint(text);
+    hintTimeoutRef.current = setTimeout(() => {
+      setHint(null);
+      hintTimeoutRef.current = null;
+    }, ms);
+  };
 
   const scrollToRiddles = () => {
+    showHint("Hádanky dole 👇");
     const element = document.getElementById("place-riddles");
     if (element) {
       element.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -62,6 +87,13 @@ export default function PlaceActionBar({
     <>
       <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background/95 backdrop-blur border-t">
         <div className="max-w-5xl mx-auto px-4 py-3">
+          {/* Hint text */}
+          {hint && (
+            <p className="mb-2 text-xs text-muted-foreground text-center animate-in fade-in duration-200">
+              {hint}
+            </p>
+          )}
+
           <div className="flex gap-2">
             {/* Visit Button */}
             <div className="flex-1">
@@ -69,6 +101,9 @@ export default function PlaceActionBar({
                 placeId={placeId}
                 alreadyVisited={alreadyVisited}
                 variant="compact"
+                onVisited={({ xpDelta, streakWeeks }) =>
+                  showHint(`+${xpDelta} XP • streak ${streakWeeks} 🔥`)
+                }
               />
             </div>
 
@@ -102,6 +137,7 @@ export default function PlaceActionBar({
         placeId={placeId}
         isOpen={isJournalOpen}
         onClose={() => setIsJournalOpen(false)}
+        onSuccess={() => showHint("Uloženo ✅")}
       />
     </>
   );
