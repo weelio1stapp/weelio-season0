@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Button from "@/components/Button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 type QuickJournalModalProps = {
   placeId: string;
@@ -70,7 +79,7 @@ export default function QuickJournalModal({
         setShowSuccess(false);
         onClose();
         router.refresh();
-      }, 1500);
+      }, 800);
     } catch (err: any) {
       console.error("Journal create error:", err);
       setError(err.message || "Došlo k neočekávané chybě");
@@ -78,78 +87,79 @@ export default function QuickJournalModal({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in duration-200">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[480px]">
         {/* Success Message */}
-        {showSuccess && (
-          <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
-            <p className="text-sm text-green-700 text-center font-medium">
-              ✅ Uloženo
-            </p>
+        {showSuccess ? (
+          <div className="p-6 text-center">
+            <p className="text-lg text-green-700 font-medium">✅ Uloženo</p>
           </div>
-        )}
-
-        {!showSuccess && (
+        ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Title */}
-            <h3 className="text-xl font-bold text-[var(--text-primary)]">
-              Napsat zápis
-            </h3>
+            <DialogHeader>
+              <DialogTitle>Rychlý zápis</DialogTitle>
+              <DialogDescription>
+                Klidně jen 1 věta. Soukromé zůstane jen pro tebe.
+              </DialogDescription>
+            </DialogHeader>
 
             {/* Content */}
-            <div>
+            <div className="space-y-2">
               <label
                 htmlFor="content"
-                className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+                className="text-sm font-medium text-foreground"
               >
                 Obsah záznamu
               </label>
-              <textarea
+              <Textarea
                 id="content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Tvůj zážitek z tohoto místa..."
                 rows={6}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent resize-vertical"
                 disabled={isSubmitting}
+                className="resize-y"
               />
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
-                {content.trim().length} / 2000 znaků
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  {content.trim().length} / 2000 znaků
+                </p>
+                {error && (
+                  <p className="text-xs text-destructive">{error}</p>
+                )}
+              </div>
             </div>
 
             {/* Visibility */}
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
                 Viditelnost
               </label>
               <div className="space-y-2">
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
                     name="visibility"
                     value="private"
                     checked={visibility === "private"}
-                    onChange={(e) => setVisibility("private")}
+                    onChange={() => setVisibility("private")}
                     disabled={isSubmitting}
-                    className="w-4 h-4 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
+                    className="w-4 h-4"
                   />
                   <span className="text-sm">
                     <strong>Soukromý</strong> - Jen pro tebe
                   </span>
                 </label>
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
                     name="visibility"
                     value="public"
                     checked={visibility === "public"}
-                    onChange={(e) => setVisibility("public")}
+                    onChange={() => setVisibility("public")}
                     disabled={isSubmitting}
-                    className="w-4 h-4 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
+                    className="w-4 h-4"
                   />
                   <span className="text-sm">
                     <strong>Veřejný</strong> - Uvidí všichni
@@ -158,23 +168,7 @@ export default function QuickJournalModal({
               </div>
             </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-3 pt-2">
-              <Button
-                type="submit"
-                variant="primary"
-                disabled={isSubmitting}
-                className="flex-1"
-              >
-                {isSubmitting ? "Ukládám..." : "Uložit"}
-              </Button>
+            <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
@@ -183,10 +177,16 @@ export default function QuickJournalModal({
               >
                 Zrušit
               </Button>
-            </div>
+              <Button
+                type="submit"
+                disabled={isSubmitting || content.trim() === ""}
+              >
+                {isSubmitting ? "Ukládám..." : "Uložit"}
+              </Button>
+            </DialogFooter>
           </form>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
