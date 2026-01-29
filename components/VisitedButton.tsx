@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/components/ui/toast";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,6 @@ export default function VisitedButton({
   alreadyVisited: initialVisited,
 }: VisitedButtonProps) {
   const router = useRouter();
-  const { showToast } = useToast();
   const [visited, setVisited] = useState(initialVisited);
   const [pending, setPending] = useState(false);
   const [showJournalPrompt, setShowJournalPrompt] = useState(false);
@@ -80,20 +79,20 @@ export default function VisitedButton({
       // Handle different response codes
       if (response.status === 409 || data.code === "ALREADY_VISITED_TODAY") {
         // Already visited today
-        showToast("Dnes už máš zapsáno 🙃", "info");
+        toast.info("Dnes už máš zapsáno 🙃");
         setVisited(true);
         return;
       }
 
       if (response.status === 401 || data.code === "UNAUTHORIZED") {
         // Not authenticated
-        showToast("Musíš být přihlášen", "error");
+        toast.error("Musíš být přihlášen");
         return;
       }
 
       if (!response.ok || !data.ok) {
         // Other error
-        showToast("Nepodařilo se zapsat návštěvu", "error");
+        toast.error("Nepodařilo se zapsat návštěvu");
         return;
       }
 
@@ -103,12 +102,11 @@ export default function VisitedButton({
       const bestStreakWeeks = data.best_streak_weeks ?? 0;
 
       if (xpDelta > 0) {
-        showToast(
-          `+${xpDelta} XP • streak ${streakWeeks} 🔥 (best ${bestStreakWeeks})`,
-          "success"
+        toast.success(
+          `+${xpDelta} XP • streak ${streakWeeks} 🔥 (best ${bestStreakWeeks})`
         );
       } else {
-        showToast("Návštěva zaznamenána ✅", "success");
+        toast.success("Návštěva zaznamenána ✅");
       }
 
       setVisited(true);
@@ -120,7 +118,7 @@ export default function VisitedButton({
       }
     } catch (err) {
       console.error("Failed to mark visited:", err);
-      showToast("Nepodařilo se zapsat návštěvu", "error");
+      toast.error("Nepodařilo se zapsat návštěvu");
     } finally {
       setPending(false);
     }
