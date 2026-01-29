@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { MapPinCheck, NotebookPen, KeyRound } from "lucide-react";
+import { MapPinCheck, NotebookPen, KeyRound, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,8 +11,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import VisitedButton from "@/components/VisitedButton";
 import QuickJournalModal from "@/components/journal/QuickJournalModal";
+
+const ONBOARDING_KEY = "weelio_onboarding_nextsteps_seen";
 
 type PlaceNextStepsProps = {
   placeId: string;
@@ -26,6 +33,25 @@ export default function PlaceNextSteps({
   alreadyVisited,
 }: PlaceNextStepsProps) {
   const [isJournalModalOpen, setIsJournalModalOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    // Check if onboarding was already seen
+    if (isAuthenticated) {
+      const seen = localStorage.getItem(ONBOARDING_KEY);
+      if (seen !== "1") {
+        // Show onboarding after a small delay for better UX
+        setTimeout(() => {
+          setShowOnboarding(true);
+        }, 500);
+      }
+    }
+  }, [isAuthenticated]);
+
+  const handleDismissOnboarding = () => {
+    localStorage.setItem(ONBOARDING_KEY, "1");
+    setShowOnboarding(false);
+  };
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -71,12 +97,36 @@ export default function PlaceNextSteps({
   return (
     <>
       <Card className="mt-6">
-        <CardHeader>
-          <CardTitle className="text-lg">Co dál?</CardTitle>
-          <CardDescription>
-            Vyber si akci – zabere to pár vteřin.
-          </CardDescription>
-        </CardHeader>
+        <Popover open={showOnboarding} onOpenChange={setShowOnboarding}>
+          <PopoverTrigger asChild>
+            <CardHeader className="cursor-default">
+              <CardTitle className="text-lg">Co dál?</CardTitle>
+              <CardDescription>
+                Vyber si akci – zabere to pár vteřin.
+              </CardDescription>
+            </CardHeader>
+          </PopoverTrigger>
+          <PopoverContent className="w-80" align="start" side="bottom">
+            <div className="space-y-3">
+              <div className="flex items-start justify-between">
+                <h4 className="font-semibold text-sm">Rychlá nápověda</h4>
+                <button
+                  onClick={handleDismissOnboarding}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Zavřít"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Tady máš 3 rychlé akce: zapsat návštěvu, napsat zápis, zkusit kešku.
+              </p>
+              <Button onClick={handleDismissOnboarding} className="w-full" size="sm">
+                Rozumím
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Action 1: Record Visit */}
