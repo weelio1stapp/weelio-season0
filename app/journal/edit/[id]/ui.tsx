@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Button from "@/components/Button";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Card from "@/components/Card";
 
 type JournalEditFormProps = {
@@ -77,77 +80,55 @@ export default function JournalEditForm({
     <Card>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Content */}
-        <div>
-          <label
-            htmlFor="content"
-            className="block text-sm font-medium text-[var(--text-primary)] mb-2"
-          >
-            Obsah záznamu
-          </label>
-          <textarea
+        <div className="space-y-2">
+          <Label htmlFor="content">Obsah záznamu</Label>
+          <Textarea
             id="content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Napiš sem svůj zážitek, myšlenku nebo poznámku..."
             rows={8}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent resize-vertical"
             disabled={isSubmitting}
+            className="resize-y"
           />
-          <p className="text-xs text-[var(--text-secondary)] mt-1">
-            {content.trim().length} / 2000 znaků
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {content.trim().length} / 2000 znaků
+            </p>
+            {error && (
+              <p className="text-sm text-destructive">{error}</p>
+            )}
+          </div>
         </div>
 
         {/* Visibility */}
-        <div>
-          <label className="block text-sm font-medium text-[var(--text-primary)] mb-3">
-            Viditelnost
-          </label>
-          <div className="space-y-2">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="visibility"
-                value="private"
-                checked={visibility === "private"}
-                onChange={(e) => setVisibility("private")}
-                disabled={isSubmitting}
-                className="w-4 h-4 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
-              />
-              <span className="text-sm">
+        <div className="space-y-3">
+          <Label>Viditelnost</Label>
+          <RadioGroup
+            value={visibility}
+            onValueChange={(value) => setVisibility(value as "private" | "public")}
+            disabled={isSubmitting}
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="private" id="private" />
+              <Label htmlFor="private" className="font-normal cursor-pointer">
                 <strong>Soukromý</strong> - Vidíš jen ty
-              </span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="visibility"
-                value="public"
-                checked={visibility === "public"}
-                onChange={(e) => setVisibility("public")}
-                disabled={isSubmitting}
-                className="w-4 h-4 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
-              />
-              <span className="text-sm">
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="public" id="public" />
+              <Label htmlFor="public" className="font-normal cursor-pointer">
                 <strong>Veřejný</strong> - Uvidí všichni návštěvníci místa
-              </span>
-            </label>
-          </div>
+              </Label>
+            </div>
+          </RadioGroup>
         </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
-        )}
 
         {/* Action Buttons */}
         <div className="flex items-center gap-4 pt-4">
           <Button
             type="submit"
-            variant="primary"
-            disabled={isSubmitting}
+            disabled={isSubmitting || content.trim() === ""}
             className="flex-1"
           >
             {isSubmitting ? "Ukládám..." : "Uložit změny"}

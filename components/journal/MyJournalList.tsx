@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 type Entry = {
   id: string;
@@ -216,16 +217,12 @@ export default function MyJournalList({ entries: initialEntries, placeNames }: P
                   {/* Header */}
                   <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
                     <div className="flex items-center gap-3">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          entry.visibility === "public"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-700"
-                        }`}
+                      <Badge
+                        variant={entry.visibility === "public" ? "default" : "secondary"}
                       >
                         {entry.visibility === "public" ? "Veřejný" : "Soukromý"}
-                      </span>
-                      <span className="text-sm text-[var(--text-secondary)]">
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
                         {formattedDate}
                       </span>
                     </div>

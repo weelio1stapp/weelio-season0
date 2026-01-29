@@ -2,7 +2,9 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Button from "@/components/Button";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import Card from "@/components/Card";
 import { Profile } from "@/lib/db/profiles";
 
@@ -107,33 +109,24 @@ export default function ProfileEditForm({
     <Card>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Display Name */}
-        <div>
-          <label
-            htmlFor="display_name"
-            className="block text-sm font-medium text-[var(--text-primary)] mb-2"
-          >
-            Zobrazované jméno
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="display_name">Zobrazované jméno</Label>
+          <Input
             type="text"
             id="display_name"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Zadejte vaše jméno"
             maxLength={50}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
           />
-          <p className="text-xs text-[var(--text-secondary)] mt-1">
+          <p className="text-xs text-muted-foreground">
             Toto jméno se zobrazí v žebříčcích a na vašich místech
           </p>
         </div>
 
         {/* Avatar Upload */}
-        <div>
-          <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-            Profilový obrázek
-          </label>
-
+        <div className="space-y-2">
+          <Label>Profilový obrázek</Label>
           <div className="flex items-center gap-6">
             {/* Avatar Preview */}
             <div className="flex-shrink-0">
@@ -151,7 +144,7 @@ export default function ProfileEditForm({
             </div>
 
             {/* File Input */}
-            <div className="flex-1">
+            <div className="flex-1 space-y-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -163,45 +156,43 @@ export default function ProfileEditForm({
                 type="button"
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
-                className="mb-2"
               >
                 Vybrat obrázek
               </Button>
-              <p className="text-xs text-[var(--text-secondary)]">
+              <p className="text-xs text-muted-foreground">
                 JPG, PNG nebo WebP. Maximum 5MB.
               </p>
+              {error && error.includes("obrázek") && (
+                <p className="text-sm text-destructive">{error}</p>
+              )}
             </div>
           </div>
         </div>
 
         {/* Email (read-only) */}
-        <div>
-          <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-            Email
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
             type="email"
+            id="email"
             value={userEmail}
             disabled
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-[var(--text-secondary)] cursor-not-allowed"
+            className="bg-muted"
           />
-          <p className="text-xs text-[var(--text-secondary)] mt-1">
+          <p className="text-xs text-muted-foreground">
             Email nelze změnit
           </p>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
+        {/* Error Message (general errors, not avatar-specific) */}
+        {error && !error.includes("obrázek") && (
+          <p className="text-sm text-destructive">{error}</p>
         )}
 
         {/* Action Buttons */}
         <div className="flex items-center gap-4 pt-4">
           <Button
             type="submit"
-            variant="primary"
             disabled={isSubmitting}
             className="flex-1"
           >
