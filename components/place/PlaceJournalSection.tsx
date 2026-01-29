@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { NotebookPen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -119,9 +120,15 @@ export default function PlaceJournalSection({
               })}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground mb-4">
+            <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed rounded-lg bg-muted/40">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4">
+                <NotebookPen className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium text-center mb-1">
                 Zatím žádné veřejné zápisky k tomuto místu.
+              </p>
+              <p className="text-sm text-muted-foreground text-center mb-6">
+                Buď první – stačí 1 věta a ostatním to pomůže.
               </p>
               {isAuthenticated ? (
                 <Button onClick={() => setIsModalOpen(true)}>

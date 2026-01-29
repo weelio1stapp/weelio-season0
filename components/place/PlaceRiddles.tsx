@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -134,11 +136,23 @@ export default function PlaceRiddles({
       <Card className="mt-6">
         <CardHeader>
           <CardTitle className="text-lg">Kešky na místě</CardTitle>
+          <CardDescription>Vyřeš hádanky a získej XP body</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground text-center py-4">
-            Přihlaš se, abys mohl řešit kešky a získat XP
-          </p>
+          <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed rounded-lg bg-muted/40">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4">
+              <KeyRound className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-medium text-center mb-1">
+              Přihlaš se pro řešení kešek
+            </p>
+            <p className="text-sm text-muted-foreground text-center mb-6">
+              Získej XP body za správné odpovědi.
+            </p>
+            <Button variant="outline" asChild>
+              <Link href="/leaderboard">Přihlásit se</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -251,14 +265,24 @@ export default function PlaceRiddles({
             })}
           </div>
         ) : (
-          <div className="text-center py-6">
-            <p className="text-sm text-muted-foreground mb-4">
-              Zatím žádné kešky na tomto místě.
+          <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed rounded-lg bg-muted/40">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4">
+              <KeyRound className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-medium text-center mb-1">
+              Zatím tu nejsou žádné kešky.
             </p>
-            {isPlaceAuthor && (
+            <p className="text-sm text-muted-foreground text-center mb-6">
+              Autor místa může přidat hádanku a odměnu XP.
+            </p>
+            {isPlaceAuthor ? (
               <Button onClick={() => setIsCreateModalOpen(true)}>
-                Přidat první kešku
+                Přidat kešku
               </Button>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">
+                Máš nápad na kešku? Navrhni ji autorovi místa.
+              </p>
             )}
           </div>
         )}
