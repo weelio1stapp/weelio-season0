@@ -3,6 +3,16 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import Card from "@/components/Card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Entry = {
   id: string;
@@ -24,13 +34,10 @@ export default function MyJournalList({ entries: initialEntries, placeNames }: P
   const [onlyWithPlace, setOnlyWithPlace] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-  // Handle delete
+  // Handle delete (called from AlertDialog confirmation)
   const handleDelete = async (id: string) => {
-    if (!confirm("Opravdu smazat tento zápis?")) {
-      return;
-    }
-
     setDeletingId(id);
     setDeleteError(null);
 
@@ -56,6 +63,7 @@ export default function MyJournalList({ entries: initialEntries, placeNames }: P
       setDeleteError(err.message || "Došlo k chybě při mazání");
     } finally {
       setDeletingId(null);
+      setPendingDeleteId(null);
     }
   };
 
@@ -231,7 +239,7 @@ export default function MyJournalList({ entries: initialEntries, placeNames }: P
                         Upravit
                       </Link>
                       <button
-                        onClick={() => handleDelete(entry.id)}
+                        onClick={() => setPendingDeleteId(entry.id)}
                         disabled={isDeleting}
                         className="text-xs text-red-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -271,6 +279,30 @@ export default function MyJournalList({ entries: initialEntries, placeNames }: P
           </div>
         </Card>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!pendingDeleteId} onOpenChange={(open) => !open && setPendingDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Smazat zápis?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tahle akce je nevratná. Zápis bude trvale odstraněn.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingDeleteId(null)}>
+              Zrušit
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => pendingDeleteId && handleDelete(pendingDeleteId)}
+              disabled={deletingId === pendingDeleteId}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingId === pendingDeleteId ? "Mazání..." : "Smazat"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
