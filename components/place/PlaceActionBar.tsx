@@ -156,7 +156,11 @@ export default function PlaceActionBar({
                   variant="compact"
                   disabled={true}
                   onVisited={({ xpDelta, streakWeeks }) =>
-                    showHint(`+${xpDelta} XP • streak ${streakWeeks} 🔥`)
+                    showHint(
+                      xpDelta > 0
+                        ? `+${xpDelta} XP • streak ${streakWeeks} 🔥`
+                        : `Návštěva zaznamenána ✅`
+                    )
                   }
                 />
               </div>
@@ -167,7 +171,11 @@ export default function PlaceActionBar({
                   alreadyVisited={alreadyVisited}
                   variant="compact"
                   onVisited={({ xpDelta, streakWeeks }) =>
-                    showHint(`+${xpDelta} XP • streak ${streakWeeks} 🔥`)
+                    showHint(
+                      xpDelta > 0
+                        ? `+${xpDelta} XP • streak ${streakWeeks} 🔥`
+                        : `Návštěva zaznamenána ✅`
+                    )
                   }
                 />
               </div>
