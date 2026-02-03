@@ -3,9 +3,10 @@ import { getSupabaseServerClient } from "../../../../lib/supabase/serverClient";
 
 export async function POST(req: Request) {
   try {
+    // 1️⃣ Supabase server client
     const supabase = await getSupabaseServerClient();
 
-    // 1️⃣ Auth
+    // 2️⃣ Auth
     const {
       data: { user },
       error: authError,
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2️⃣ Body
+    // 3️⃣ Request body
     const body = await req.json();
     const {
       place_id,
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3️⃣ INSERT místo RPC
+    // 4️⃣ INSERT (bez RPC)
     const { data, error } = await supabase
       .from("place_riddles")
       .insert({
@@ -72,7 +73,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4️⃣ Success
+    // 5️⃣ Success
     return NextResponse.json({
       ok: true,
       id: data.id,
