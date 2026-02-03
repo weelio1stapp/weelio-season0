@@ -45,6 +45,13 @@ export const cs = {
       riddlesDoneToday: "Kešky (dnes hotovo)",
       riddlesCta: "Na kešky",
       journalCta: "Napsat",
+      infoPopover: {
+        trigger: "Co to znamená?",
+        title: "3 rychlé akce na místě",
+        visitExplain: "Navštívit: zaznamená návštěvu, získáš XP a streak 🔥",
+        journalExplain: "Zapsat: krátký zápis pro ostatní návštěvníky ✍️",
+        riddlesExplain: "Kešky: vyřeš hádanky na místě a získej odměny XP 🎯",
+      },
     },
   },
   visit: {

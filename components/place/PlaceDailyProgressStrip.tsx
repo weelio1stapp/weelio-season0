@@ -1,10 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MapPinCheck, NotebookPen, KeyRound } from "lucide-react";
+import { MapPinCheck, NotebookPen, KeyRound, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import VisitedButton from "@/components/VisitedButton";
 import QuickJournalModal from "@/components/journal/QuickJournalModal";
 import { copy } from "@/lib/copy";
@@ -131,7 +136,26 @@ export default function PlaceDailyProgressStrip({
     <>
       <Card className="mt-6">
         <CardContent className="pt-6">
-          <h3 className="text-sm font-semibold mb-3">{copy.place.daily.title}</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">{copy.place.daily.title}</h3>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-auto p-1">
+                  <Info className="w-4 h-4 opacity-60" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm">{copy.place.daily.infoPopover.title}</h4>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>{copy.place.daily.infoPopover.visitExplain}</p>
+                    <p>{copy.place.daily.infoPopover.journalExplain}</p>
+                    <p>{copy.place.daily.infoPopover.riddlesExplain}</p>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
 
           {/* Hint text */}
           {hint && (

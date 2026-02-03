@@ -1,18 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { fetchPlaceById, getNearbyPlaces } from "@/lib/db/places";
+import { fetchPlaceById } from "@/lib/db/places";
 import { PLACE_TYPE_LABELS } from "@/lib/placesFilters";
 import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
 import { hasVisitedToday, getPlaceStats } from "@/lib/db/visits";
-import { getActiveChallenges, getMyChallengeProgress } from "@/lib/db/challenges";
-import { getTopWalkers, getTopAuthors } from "@/lib/db/leaderboard";
-import { getWalkerRank, getAuthorRank, formatRank } from "@/lib/utils/rank";
 import PlaceGallery from "@/components/PlaceGallery";
 import PlaceAuthorActions from "@/components/PlaceAuthorActions";
 import VisitedButton from "@/components/VisitedButton";
-import PlaceNextSteps from "@/components/place/PlaceNextSteps";
-import PlaceActionBar from "@/components/place/PlaceActionBar";
-import NextStepsSection from "@/components/place/NextStepsSection";
 import PlaceJournalSection from "@/components/place/PlaceJournalSection";
 import PlaceRiddles from "@/components/place/PlaceRiddles";
 import PlaceDailyProgressStrip from "@/components/place/PlaceDailyProgressStrip";
@@ -81,16 +75,11 @@ export default async function PlaceDetailPage({
   // Load place statistics
   const stats = await getPlaceStats(place.id);
 
-  // Load next steps data and journal entries
-  const [nearbyPlaces, activeChallenges, topWalkers, topAuthors, journalEntries, riddles] =
-    await Promise.all([
-      getNearbyPlaces(place.area, place.id, 3),
-      getActiveChallenges(),
-      currentUserId ? getTopWalkers(100, 30) : Promise.resolve([]),
-      currentUserId ? getTopAuthors(100, 30) : Promise.resolve([]),
-      getPublicJournalEntriesForPlace(place.id, 10),
-      getPublicRiddlesForPlace(place.id),
-    ]);
+  // Load journal entries and riddles
+  const [journalEntries, riddles] = await Promise.all([
+    getPublicJournalEntriesForPlace(place.id, 10),
+    getPublicRiddlesForPlace(place.id),
+  ]);
 
   // Batch load profiles for journal entries
   const userIds = journalEntries.map((entry) => entry.user_id);
@@ -118,30 +107,6 @@ export default async function PlaceDetailPage({
     ? await getMySolvedRiddles(riddleIds)
     : new Set<string>();
   const solvedRiddleIdsArray = Array.from(solvedRiddleIds);
-
-  // Load challenge progress if authenticated
-  let challengeProgress: Awaited<ReturnType<typeof getMyChallengeProgress>> = [];
-  if (currentUserId) {
-    try {
-      challengeProgress = await getMyChallengeProgress(currentUserId);
-    } catch (error: any) {
-      console.error("Failed to fetch challenge progress:", {
-        code: error?.code,
-        message: error?.message,
-      });
-    }
-  }
-
-  // Calculate user ranks if authenticated
-  let userRanks = null;
-  if (currentUserId) {
-    const walkerRank = getWalkerRank(currentUserId, topWalkers);
-    const authorRank = getAuthorRank(currentUserId, topAuthors);
-    userRanks = {
-      walkerRank: formatRank(walkerRank, 100),
-      authorRank: formatRank(authorRank, 100),
-    };
-  }
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 pb-24 md:pb-8">
@@ -195,22 +160,6 @@ export default async function PlaceDetailPage({
           alreadyVisited={alreadyVisited}
         />
       )}
-
-      {/* Quick Actions CTA */}
-      <PlaceNextSteps
-        placeId={place.id}
-        isAuthenticated={!!currentUserId}
-        alreadyVisited={alreadyVisited}
-      />
-
-      {/* Next Steps Section */}
-      <NextStepsSection
-        nearbyPlaces={nearbyPlaces}
-        challenges={activeChallenges}
-        challengeProgress={challengeProgress}
-        userRanks={userRanks}
-        isAuthenticated={!!currentUserId}
-      />
 
       {/* Place Journal */}
       <PlaceJournalSection
@@ -342,13 +291,6 @@ export default async function PlaceDetailPage({
           currentCoverPath={place.cover_storage_path}
         />
       </div>
-
-      {/* Mobile Action Bar */}
-      <PlaceActionBar
-        placeId={place.id}
-        isAuthenticated={!!currentUserId}
-        alreadyVisited={alreadyVisited}
-      />
     </main>
   );
 }
