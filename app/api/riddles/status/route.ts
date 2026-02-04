@@ -41,9 +41,14 @@ export async function GET(req: Request) {
       .eq("is_active", true);
 
     if (riddlesError) {
-      console.error("Error fetching riddles:", riddlesError);
+      console.error("Error fetching riddles:", {
+        code: riddlesError.code,
+        message: riddlesError.message,
+        details: (riddlesError as any).details,
+        hint: (riddlesError as any).hint,
+      });
       return NextResponse.json(
-        { ok: false, error: "Nepodařilo se načíst kešky" },
+        { ok: false, error: "Nepodařilo se načíst kešky", details: riddlesError.message },
         { status: 500 }
       );
     }
@@ -72,9 +77,14 @@ export async function GET(req: Request) {
       .eq("attempted_on", today);
 
     if (attemptsError) {
-      console.error("Error fetching attempts:", attemptsError);
+      console.error("Error fetching attempts:", {
+        code: attemptsError.code,
+        message: attemptsError.message,
+        details: (attemptsError as any).details,
+        hint: (attemptsError as any).hint,
+      });
       return NextResponse.json(
-        { ok: false, error: "Nepodařilo se načíst pokusy" },
+        { ok: false, error: "Nepodařilo se načíst pokusy", details: attemptsError.message },
         { status: 500 }
       );
     }

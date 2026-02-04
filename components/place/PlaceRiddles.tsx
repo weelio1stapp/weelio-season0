@@ -40,8 +40,9 @@ export default function PlaceRiddles({
   isPlaceAuthor,
 }: PlaceRiddlesProps) {
   const router = useRouter();
-  const [riddles] = useState<Riddle[]>(initialRiddles);
-  const [solvedSet] = useState<Set<string>>(new Set(initialSolved));
+  // Use props directly instead of useState to allow refresh after create
+  const riddles = initialRiddles;
+  const solvedSet = new Set(initialSolved);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
   const [feedback, setFeedback] = useState<
