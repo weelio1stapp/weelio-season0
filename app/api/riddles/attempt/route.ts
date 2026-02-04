@@ -1,44 +1,15 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
+import { getSupabaseServerClient } from "../../../../lib/supabase/serverClient";
 
-export const runtime = "nodejs";
+function normalizeText(s: string) {
+  return (s ?? "").trim().toLowerCase();
+}
 
 export async function POST(req: Request) {
   try {
-    // Parse JSON body
-    let body: any;
-    try {
-      body = await req.json();
-    } catch (e) {
-      return NextResponse.json(
-        { ok: false, error: "Invalid JSON body" },
-        { status: 400 }
-      );
-    }
-
-    const { riddle_id, answer_plain } = body;
-
-    // Validate inputs
-    if (!riddle_id || typeof riddle_id !== "string") {
-      return NextResponse.json(
-        { ok: false, error: "riddle_id is required" },
-        { status: 400 }
-      );
-    }
-
-    if (
-      !answer_plain ||
-      typeof answer_plain !== "string" ||
-      answer_plain.trim() === ""
-    ) {
-      return NextResponse.json(
-        { ok: false, error: "answer_plain is required" },
-        { status: 400 }
-      );
-    }
-
-    // Check authentication
     const supabase = await getSupabaseServerClient();
+
+    // Auth
     const {
       data: { user },
       error: authError,
@@ -46,63 +17,76 @@ export async function POST(req: Request) {
 
     if (authError || !user) {
       return NextResponse.json(
-        { ok: false, error: "Musíte být přihlášeni" },
+        { ok: false, error: "Nepřihlášený uživatel" },
         { status: 401 }
       );
     }
 
-    // Call RPC function to attempt riddle
-    const { data, error: rpcError } = await supabase.rpc("attempt_riddle", {
-      p_riddle_id: riddle_id,
-      p_answer_plain: answer_plain,
-    });
+    // Body
+    const body = await req.json();
+    const { riddle_id, answer_plain } = body;
 
-    if (rpcError) {
-      console.error("attempt_riddle RPC error:", {
-        code: rpcError.code,
-        message: rpcError.message,
-        details: (rpcError as any).details,
-        hint: (rpcError as any).hint,
-      });
-
+    if (!riddle_id || answer_plain === undefined) {
       return NextResponse.json(
-        {
-          ok: false,
-          error: "Nepodařilo se ověřit odpověď",
-          details: rpcError.message,
-        },
-        { status: 500 }
-      );
-    }
-
-    // RPC returns array with single result
-    const result = data && data.length > 0 ? data[0] : null;
-
-    if (!result || !result.ok) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: result?.error_message || "Neplatná odpověď",
-        },
+        { ok: false, error: "Neplatná data" },
         { status: 400 }
       );
     }
 
-    // Success response
+    // Load riddle
+    const { data: riddle, error: riddleError } = await supabase
+      .from("place_riddles")
+      .select("id, answer_type, answer_plain, xp_reward, place_id, created_by, is_active")
+      .eq("id", riddle_id)
+      .maybeSingle();
+
+    if (riddleError || !riddle) {
+      return NextResponse.json(
+        { ok: false, error: "Keška nenalezena" },
+        { status: 404 }
+      );
+    }
+
+    if (riddle.is_active === false) {
+      return NextResponse.json(
+        { ok: false, error: "Keška je neaktivní" },
+        { status: 400 }
+      );
+    }
+
+    // Verify
+    let correct = false;
+
+    if (riddle.answer_type === "number") {
+      const expected = Number(String(riddle.answer_plain).trim());
+      const got = Number(String(answer_plain).trim());
+      correct = Number.isFinite(expected) && Number.isFinite(got) && expected === got;
+    } else {
+      // "text"
+      correct = normalizeText(String(riddle.answer_plain)) === normalizeText(String(answer_plain));
+    }
+
+    // OPTIONAL: log attempt (pokud nemáš tabulku, přeskoč)
+    // Pokud tabulku máš jinak pojmenovanou, řekni název a upravím to.
+    // await supabase.from("place_riddle_attempts").insert({
+    //   riddle_id: riddle.id,
+    //   user_id: user.id,
+    //   answer_plain: String(answer_plain),
+    //   is_correct: correct,
+    // });
+
     return NextResponse.json({
       ok: true,
-      correct: result.correct,
-      already_solved: result.already_solved || false,
-      xp_delta: result.xp_delta || 0,
-      attempts_left: result.attempts_left || 0,
+      correct,
+      xp_reward: correct ? riddle.xp_reward : 0,
     });
-  } catch (error: any) {
-    console.error("Riddle attempt exception:", error);
+  } catch (err: any) {
+    console.error("Riddle attempt fatal error:", err);
     return NextResponse.json(
       {
         ok: false,
-        error: "Došlo k neočekávané chybě",
-        details: error.message,
+        error: "Nepodařilo se ověřit odpověď",
+        details: err?.message ?? "Unknown error",
       },
       { status: 500 }
     );
