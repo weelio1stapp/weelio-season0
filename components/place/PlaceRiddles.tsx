@@ -44,8 +44,8 @@ export default function PlaceRiddles({
   isPlaceAuthor,
 }: PlaceRiddlesProps) {
   const router = useRouter();
-  // Use props directly instead of useState to allow refresh after create
-  const riddles = initialRiddles;
+  // Use useState to allow immediate updates after actions
+  const [riddles, setRiddles] = useState<Riddle[]>(initialRiddles);
   const solvedSet = new Set(initialSolved);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
@@ -57,6 +57,23 @@ export default function PlaceRiddles({
     >
   >({});
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  // Refetch riddles status from backend (source of truth)
+  const refetchStatus = async () => {
+    try {
+      const response = await fetch("/api/riddles/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ place_id: placeId }),
+      });
+      const data = await response.json();
+      if (data.ok && data.riddles) {
+        setRiddles(data.riddles);
+      }
+    } catch (err) {
+      console.error("Refetch status error:", err);
+    }
+  };
 
   const handleDelete = async (riddleId: string) => {
     if (!confirm("Opravdu chceš smazat tuto kešku?")) {
@@ -80,8 +97,8 @@ export default function PlaceRiddles({
         throw new Error(data.error || "Nepodařilo se smazat kešku");
       }
 
-      // Refresh to remove deleted riddle
-      router.refresh();
+      // Refetch to remove deleted riddle
+      await refetchStatus();
     } catch (err: any) {
       console.error("Riddle delete error:", err);
       alert(err.message || "Nepodařilo se smazat kešku");
@@ -121,6 +138,9 @@ export default function PlaceRiddles({
         throw new Error(data.error || copy.riddles.verifyFailed);
       }
 
+      // Refetch status after every attempt to update attempts_left and solved state
+      await refetchStatus();
+
       if (data.correct) {
         // Correct answer!
         solvedSet.add(riddleId);
@@ -140,10 +160,12 @@ export default function PlaceRiddles({
         });
         setAnswers({ ...answers, [riddleId]: "" });
 
-        // Refresh to update XP in header/profile
-        setTimeout(() => {
-          router.refresh();
-        }, 1500);
+        // Refresh page to update XP in header if XP was awarded
+        if (data.xp_delta > 0) {
+          setTimeout(() => {
+            router.refresh();
+          }, 1500);
+        }
       } else {
         // Incorrect
         const attemptsText =
@@ -275,7 +297,13 @@ export default function PlaceRiddles({
                   {isSolved ? (
                     <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
                       <p className="text-sm text-green-700 dark:text-green-400 font-medium">
-                        {copy.riddles.solved}
+                        ✅ {copy.riddles.solved}
+                      </p>
+                    </div>
+                  ) : attemptsLeft === 0 ? (
+                    <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                      <p className="text-sm text-red-700 dark:text-red-400 font-medium">
+                        {copy.riddles.noAttemptsLeft}
                       </p>
                     </div>
                   ) : (
@@ -368,7 +396,7 @@ export default function PlaceRiddles({
           onClose={() => setIsCreateModalOpen(false)}
           onSuccess={() => {
             setIsCreateModalOpen(false);
-            router.refresh();
+            refetchStatus();
           }}
         />
       )}
