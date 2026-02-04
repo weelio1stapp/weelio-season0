@@ -1,112 +1,77 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
+import { getSupabaseServerClient } from "../../../../lib/supabase/serverClient";
 
-export const runtime = "nodejs";
-
-const MAX_DAILY_RIDDLE_ATTEMPTS = 5;
-
-export async function GET(req: Request) {
+export async function POST(req: Request) {
   try {
-    // Parse query params
-    const { searchParams } = new URL(req.url);
-    const placeId = searchParams.get("placeId");
+    const supabase = await getSupabaseServerClient();
 
-    // Validate placeId
-    if (!placeId || typeof placeId !== "string") {
+    // Auth (pokud není user, pořád můžeme vrátit seznam kešek; jen některé věci budou null)
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const body = await req.json();
+    const { place_id } = body ?? {};
+
+    if (!place_id) {
       return NextResponse.json(
-        { ok: false, error: "placeId is required" },
+        { ok: false, error: "Neplatná data" },
         { status: 400 }
       );
     }
 
-    // Check authentication
-    const supabase = await getSupabaseServerClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { ok: false, error: "Musíte být přihlášeni" },
-        { status: 401 }
-      );
-    }
-
-    // Get all riddles for this place
+    // 1) Načti kešky pro místo
+    // (NEfiltruj is_active – v DB ten sloupec nemáš)
     const { data: riddles, error: riddlesError } = await supabase
       .from("place_riddles")
-      .select("id")
-      .eq("place_id", placeId)
-      .eq("is_active", true);
+      .select("id, place_id, prompt, answer_type, xp_reward, created_by, created_at")
+      .eq("place_id", place_id)
+      .order("created_at", { ascending: false });
 
     if (riddlesError) {
-      console.error("Error fetching riddles:", {
-        code: riddlesError.code,
-        message: riddlesError.message,
-        details: (riddlesError as any).details,
-        hint: (riddlesError as any).hint,
-      });
       return NextResponse.json(
-        { ok: false, error: "Nepodařilo se načíst kešky", details: riddlesError.message },
+        {
+          ok: false,
+          error: "Nepodařilo se načíst kešky",
+          details: riddlesError.message,
+        },
         { status: 500 }
       );
     }
 
-    // If no riddles, return max attempts
-    if (!riddles || riddles.length === 0) {
-      return NextResponse.json({
-        ok: true,
-        remaining: MAX_DAILY_RIDDLE_ATTEMPTS,
-        limit: MAX_DAILY_RIDDLE_ATTEMPTS,
-      });
-    }
+    // 2) Attempts fallback – protože tabulka attempts v projektu zatím není.
+    // Vracíme konstanty, aby UI neukazovalo undefined.
+    const MAX_ATTEMPTS = 5;
 
-    const riddleIds = riddles.map((r) => r.id);
+    const enriched = (riddles ?? []).map((r) => {
+      const attempts_left = MAX_ATTEMPTS;
+      const remaining_attempts = MAX_ATTEMPTS;
 
-    // Count attempts today for these riddles
-    // Each row in riddle_attempts represents attempts on one riddle on one day
-    // We count the number of distinct riddles attempted today
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+      return {
+        ...r,
 
-    const { data: attempts, error: attemptsError } = await supabase
-      .from("riddle_attempts")
-      .select("riddle_id")
-      .eq("user_id", user.id)
-      .in("riddle_id", riddleIds)
-      .eq("attempted_on", today);
+        // pokusy (compat)
+        attempts_left,
+        remaining_attempts,
 
-    if (attemptsError) {
-      console.error("Error fetching attempts:", {
-        code: attemptsError.code,
-        message: attemptsError.message,
-        details: (attemptsError as any).details,
-        hint: (attemptsError as any).hint,
-      });
-      return NextResponse.json(
-        { ok: false, error: "Nepodařilo se načíst pokusy", details: attemptsError.message },
-        { status: 500 }
-      );
-    }
-
-    // Count distinct riddles attempted today
-    const attemptedRiddlesCount = attempts ? attempts.length : 0;
-
-    // Calculate remaining
-    const remaining = Math.max(0, MAX_DAILY_RIDDLE_ATTEMPTS - attemptedRiddlesCount);
+        // pro UI tlačítko delete – ať máš jasný boolean
+        can_delete: user?.id ? r.created_by === user.id : false,
+      };
+    });
 
     return NextResponse.json({
       ok: true,
-      remaining,
-      limit: MAX_DAILY_RIDDLE_ATTEMPTS,
+      place_id,
+      riddles: enriched,
+      max_attempts: MAX_ATTEMPTS,
     });
-  } catch (error: any) {
-    console.error("Riddle status exception:", error);
+  } catch (err: any) {
+    console.error("Riddle status fatal error:", err);
     return NextResponse.json(
       {
         ok: false,
-        error: "Došlo k neočekávané chybě",
-        details: error.message,
+        error: "Nepodařilo se načíst kešky",
+        details: err?.message ?? "Unknown error",
       },
       { status: 500 }
     );
