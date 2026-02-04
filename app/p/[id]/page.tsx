@@ -101,12 +101,45 @@ export default async function PlaceDetailPage({
     created_at: typeof e.created_at === "string" ? e.created_at : new Date(e.created_at).toISOString(),
   }));
 
-  // Load solved riddles for current user
+  // Load attempts and solved status for current user
   const riddleIds = riddles.map((r) => r.id);
   const solvedRiddleIds = currentUserId && riddleIds.length > 0
     ? await getMySolvedRiddles(riddleIds)
     : new Set<string>();
   const solvedRiddleIdsArray = Array.from(solvedRiddleIds);
+
+  // Count attempts per riddle for current user
+  let attemptsMap = new Map<string, number>();
+  if (currentUserId && riddleIds.length > 0) {
+    const { data: attempts } = await supabase
+      .from("place_riddle_attempts")
+      .select("riddle_id")
+      .eq("user_id", currentUserId)
+      .in("riddle_id", riddleIds);
+
+    if (attempts) {
+      attempts.forEach((a) => {
+        const count = attemptsMap.get(a.riddle_id) || 0;
+        attemptsMap.set(a.riddle_id, count + 1);
+      });
+    }
+  }
+
+  // Enrich riddles with attempts_left, solved, can_delete
+  const enrichedRiddles = riddles.map((r) => {
+    const maxAttempts = r.max_attempts ?? 3;
+    const attemptsUsed = attemptsMap.get(r.id) || 0;
+    const attemptsLeft = Math.max(0, maxAttempts - attemptsUsed);
+    const solved = solvedRiddleIds.has(r.id);
+    const canDelete = currentUserId ? r.created_by === currentUserId : false;
+
+    return {
+      ...r,
+      attempts_left: attemptsLeft,
+      solved,
+      can_delete: canDelete,
+    };
+  });
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 pb-24 md:pb-8">
@@ -172,7 +205,7 @@ export default async function PlaceDetailPage({
       {/* Riddles */}
       <PlaceRiddles
         placeId={place.id}
-        riddles={riddles}
+        riddles={enrichedRiddles}
         solvedRiddleIds={solvedRiddleIdsArray}
         isAuthenticated={!!currentUserId}
         isPlaceAuthor={isAuthor}

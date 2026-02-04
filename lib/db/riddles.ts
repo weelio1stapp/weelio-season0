@@ -5,7 +5,9 @@ export type PublicRiddle = {
   prompt: string;
   answer_type: "text" | "number";
   xp_reward: number;
+  max_attempts: number;
   is_active: boolean;
+  created_by: string;
 };
 
 export type AuthorRiddle = PublicRiddle & {
@@ -24,7 +26,7 @@ export async function getPublicRiddlesForPlace(
 
     const { data, error } = await supabase
       .from("place_riddles")
-      .select("id, prompt, answer_type, xp_reward, is_active")
+      .select("id, prompt, answer_type, xp_reward, max_attempts, is_active, created_by")
       .eq("place_id", placeId)
       .eq("is_active", true)
       .order("created_at", { ascending: true });
@@ -105,9 +107,10 @@ export async function getMySolvedRiddles(
     }
 
     const { data, error } = await supabase
-      .from("riddle_solves")
+      .from("place_riddle_attempts")
       .select("riddle_id")
       .eq("user_id", user.id)
+      .eq("is_correct", true)
       .in("riddle_id", riddleIds);
 
     if (error) {

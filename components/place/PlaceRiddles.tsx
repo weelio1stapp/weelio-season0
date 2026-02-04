@@ -124,11 +124,17 @@ export default function PlaceRiddles({
       if (data.correct) {
         // Correct answer!
         solvedSet.add(riddleId);
+
+        // Show different message if already solved (xp_delta=0)
+        const message = data.already_solved
+          ? "Už máš vyřešeno"
+          : copy.riddles.correctWithXp(data.xp_delta);
+
         setFeedback({
           ...feedback,
           [riddleId]: {
             type: "success",
-            message: copy.riddles.correctWithXp(data.xp_delta),
+            message: message,
             xp: data.xp_delta,
           },
         });
