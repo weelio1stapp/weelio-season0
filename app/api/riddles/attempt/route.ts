@@ -85,7 +85,19 @@ export async function POST(req: Request) {
 
     const attemptsUsedCount = attemptsUsed ?? 0;
 
-    // 5️⃣ Check if already solved (correct attempt exists)
+    // 5️⃣ Check if out of attempts (BEFORE new attempt)
+    if (attemptsUsedCount >= maxAttempts) {
+      return NextResponse.json({
+        ok: true,
+        correct: false,
+        xp_delta: 0,
+        attempts_left: 0,
+        max_attempts: maxAttempts,
+        error: "Došly pokusy",
+      });
+    }
+
+    // 6️⃣ Check if already solved (for XP award logic only, NOT for blocking attempts)
     const { data: solvedAttempt, error: solvedError } = await supabase
       .from("place_riddle_attempts")
       .select("id")
@@ -105,32 +117,7 @@ export async function POST(req: Request) {
 
     const alreadySolved = !!solvedAttempt;
 
-    // If already solved, return success with 0 XP and current attempts_left
-    if (alreadySolved) {
-      const attemptsLeft = Math.max(0, maxAttempts - attemptsUsedCount);
-      return NextResponse.json({
-        ok: true,
-        correct: true,
-        xp_delta: 0,
-        attempts_left: attemptsLeft,
-        max_attempts: maxAttempts,
-        already_solved: true,
-      });
-    }
-
-    // 6️⃣ Check if out of attempts (BEFORE new attempt)
-    if (attemptsUsedCount >= maxAttempts) {
-      return NextResponse.json({
-        ok: true,
-        correct: false,
-        xp_delta: 0,
-        attempts_left: 0,
-        max_attempts: maxAttempts,
-        error: "Došly pokusy",
-      });
-    }
-
-    // 7️⃣ Verify answer
+    // 7️⃣ Verify answer (ALWAYS evaluate, regardless of solved state)
     let correct = false;
 
     if (riddle.answer_type === "number") {
@@ -177,12 +164,13 @@ export async function POST(req: Request) {
     const newAttemptsUsed = attemptsUsedCount + 1;
     const attemptsLeft = Math.max(0, maxAttempts - newAttemptsUsed);
 
-    // Calculate XP (only on first correct attempt)
-    const xpDelta = correct ? (riddle.xp_reward ?? 0) : 0;
+    // Calculate XP (only on FIRST correct attempt)
+    const xpDelta = correct && !alreadySolved ? (riddle.xp_reward ?? 0) : 0;
 
     return NextResponse.json({
       ok: true,
       correct,
+      already_solved: alreadySolved,
       xp_delta: xpDelta,
       attempts_left: attemptsLeft,
       max_attempts: maxAttempts,
