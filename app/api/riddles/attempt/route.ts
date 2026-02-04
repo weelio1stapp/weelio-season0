@@ -174,7 +174,37 @@ export async function POST(req: Request) {
     const attemptsLeft = Math.max(0, maxAttempts - newAttemptsUsed);
 
     // Calculate XP (only on FIRST correct attempt in window, alreadySolved is false here)
-    const xpDelta = correct ? (riddle.xp_reward ?? 0) : 0;
+    const xpReward = riddle.xp_reward ?? 0;
+    let xpDelta = 0;
+    let totalXp = 0;
+    let level = 1;
+
+    // Award XP if correct and has reward
+    if (correct && xpReward > 0) {
+      const { data: xpResult, error: xpError } = await supabase
+        .rpc("award_xp", {
+          p_source: "riddle",
+          p_source_id: riddle.id,
+          p_xp_delta: xpReward,
+        })
+        .single();
+
+      if (xpError) {
+        console.error("Award XP error:", {
+          code: xpError.code,
+          message: xpError.message,
+          details: (xpError as any).details,
+          hint: (xpError as any).hint,
+        });
+        // Don't fail the request, just log the error
+        xpDelta = 0;
+      } else if (xpResult) {
+        const result = xpResult as { awarded: boolean; xp_delta: number; xp_total: number; level: number };
+        xpDelta = result.xp_delta || 0;
+        totalXp = result.xp_total || 0;
+        level = result.level || 1;
+      }
+    }
 
     // Compute next_available_at if this was a correct solve
     let nextAvailableAt: string | null = null;
@@ -187,6 +217,8 @@ export async function POST(req: Request) {
       ok: true,
       correct,
       xp_delta: xpDelta,
+      total_xp: totalXp,
+      level: level,
       attempts_left: attemptsLeft,
       max_attempts: maxAttempts,
       solved: correct,
