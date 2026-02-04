@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Button from "@/components/Button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type CreateRiddleModalProps = {
   placeId: string;
@@ -227,9 +228,9 @@ export default function CreateRiddleModal({
 
           {/* Error Message */}
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
+            <Alert variant="error">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
           {/* Action Buttons */}

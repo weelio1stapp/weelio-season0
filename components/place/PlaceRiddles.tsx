@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import CreateRiddleModal from "./CreateRiddleModal";
 import { copy } from "@/lib/copy";
 
@@ -340,22 +341,22 @@ export default function PlaceRiddles({
 
                   {/* Input + Submit */}
                   {isSolved ? (
-                    <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
-                      <p className="text-sm text-green-700 dark:text-green-400 font-medium">
+                    <Alert variant="success">
+                      <AlertDescription className="font-medium">
                         ✅ {copy.riddles.solved}
-                      </p>
+                      </AlertDescription>
                       {riddle.next_available_at && (
-                        <p className="text-xs text-green-600 dark:text-green-500 mt-1">
+                        <p className="text-xs mt-1 opacity-90">
                           Znovu za: {formatTimeRemaining(riddle.next_available_at)}
                         </p>
                       )}
-                    </div>
+                    </Alert>
                   ) : attemptsLeft === 0 ? (
-                    <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
-                      <p className="text-sm text-red-700 dark:text-red-400 font-medium">
+                    <Alert variant="error">
+                      <AlertDescription className="font-medium">
                         {copy.riddles.noAttemptsLeft}
-                      </p>
-                    </div>
+                      </AlertDescription>
+                    </Alert>
                   ) : (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
@@ -389,23 +390,11 @@ export default function PlaceRiddles({
 
                       {/* Feedback */}
                       {riddleFeedback && (
-                        <div
-                          className={`p-3 rounded-lg border ${
-                            riddleFeedback.type === "success"
-                              ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800"
-                              : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
-                          }`}
-                        >
-                          <p
-                            className={`text-sm font-medium ${
-                              riddleFeedback.type === "success"
-                                ? "text-green-700 dark:text-green-400"
-                                : "text-red-700 dark:text-red-400"
-                            }`}
-                          >
+                        <Alert variant={riddleFeedback.type === "success" ? "success" : "error"}>
+                          <AlertDescription className="font-medium">
                             {riddleFeedback.message}
-                          </p>
-                        </div>
+                          </AlertDescription>
+                        </Alert>
                       )}
                     </div>
                   )}
