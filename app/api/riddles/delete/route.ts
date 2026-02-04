@@ -34,7 +34,20 @@ export async function POST(req: Request) {
       .eq("id", riddle_id)
       .single();
 
-    if (riddleError || !riddle) {
+    if (riddleError) {
+      console.error("Riddle fetch error:", {
+        code: riddleError.code,
+        message: riddleError.message,
+        details: (riddleError as any).details,
+        hint: (riddleError as any).hint,
+      });
+      return NextResponse.json(
+        { ok: false, error: "Keška nenalezena", details: riddleError.message },
+        { status: 404 }
+      );
+    }
+
+    if (!riddle) {
       return NextResponse.json(
         { ok: false, error: "Keška nenalezena" },
         { status: 404 }
@@ -48,12 +61,19 @@ export async function POST(req: Request) {
       );
     }
 
+    // Soft delete: set is_active = false
     const { error: delError } = await supabase
       .from("place_riddles")
-      .delete()
+      .update({ is_active: false })
       .eq("id", riddle_id);
 
     if (delError) {
+      console.error("Riddle soft delete error:", {
+        code: delError.code,
+        message: delError.message,
+        details: (delError as any).details,
+        hint: (delError as any).hint,
+      });
       return NextResponse.json(
         { ok: false, error: "Nepodařilo se smazat kešku", details: delError.message },
         { status: 500 }

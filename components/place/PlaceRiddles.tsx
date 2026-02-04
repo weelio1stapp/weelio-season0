@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { KeyRound, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -94,14 +95,23 @@ export default function PlaceRiddles({
       const data = await response.json();
 
       if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Nepodařilo se smazat kešku");
+        const errorMsg = data.error || "Nepodařilo se smazat kešku";
+        const details = data.details ? ` (${data.details})` : "";
+        toast.error(errorMsg + details);
+        setDeleting({ ...deleting, [riddleId]: false });
+        return;
       }
 
-      // Refetch to remove deleted riddle
+      // Optimistically remove riddle from local state
+      setRiddles((prev) => prev.filter((r) => r.id !== riddleId));
+
+      // Refetch to ensure consistency with backend
       await refetchStatus();
+
+      toast.success("Keška smazána");
     } catch (err: any) {
       console.error("Riddle delete error:", err);
-      alert(err.message || "Nepodařilo se smazat kešku");
+      toast.error(err.message || "Nepodařilo se smazat kešku");
     } finally {
       setDeleting({ ...deleting, [riddleId]: false });
     }
