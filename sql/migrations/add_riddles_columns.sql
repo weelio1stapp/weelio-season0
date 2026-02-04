@@ -7,6 +7,11 @@ ALTER TABLE public.place_riddles
 ADD COLUMN IF NOT EXISTS max_attempts integer NOT NULL DEFAULT 3
 CHECK (max_attempts >= 1 AND max_attempts <= 4);
 
+-- Add cooldown_hours column (default 24, how long until riddle can be attempted again)
+ALTER TABLE public.place_riddles
+ADD COLUMN IF NOT EXISTS cooldown_hours integer NOT NULL DEFAULT 24
+CHECK (cooldown_hours > 0);
+
 -- Add answer_plain column for direct answer storage (alternative to hash/salt)
 ALTER TABLE public.place_riddles
 ADD COLUMN IF NOT EXISTS answer_plain text;

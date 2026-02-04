@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     // 3️⃣ Load riddle
     const { data: riddle, error: riddleError } = await supabase
       .from("place_riddles")
-      .select("id, answer_type, answer_plain, xp_reward, max_attempts, is_active")
+      .select("id, answer_type, answer_plain, xp_reward, max_attempts, cooldown_hours, is_active")
       .eq("id", riddle_id)
       .maybeSingle();
 
@@ -58,34 +58,63 @@ export async function POST(req: Request) {
     }
 
     const maxAttempts = riddle.max_attempts ?? 3;
+    const cooldownHours = riddle.cooldown_hours ?? 24;
 
-    // 4️⃣ Count attempts_used for this user + riddle (BEFORE new attempt)
-    const { count: attemptsUsed, error: countError } = await supabase
+    // 4️⃣ Compute window_start for cooldown period
+    const now = new Date();
+    const windowStart = new Date(now.getTime() - cooldownHours * 60 * 60 * 1000);
+    const windowStartISO = windowStart.toISOString();
+
+    // 5️⃣ Load all attempts within the current window
+    const { data: windowAttempts, error: attemptsError } = await supabase
       .from("place_riddle_attempts")
-      .select("id", { count: "exact", head: true })
+      .select("id, is_correct, created_at")
       .eq("riddle_id", riddle.id)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .gte("created_at", windowStartISO)
+      .order("created_at", { ascending: false });
 
-    if (countError) {
-      console.error("Count attempts error:", {
-        code: countError.code,
-        message: countError.message,
-        details: (countError as any).details,
-        hint: (countError as any).hint,
+    if (attemptsError) {
+      console.error("Load window attempts error:", {
+        code: attemptsError.code,
+        message: attemptsError.message,
+        details: (attemptsError as any).details,
+        hint: (attemptsError as any).hint,
       });
       return NextResponse.json(
         {
           ok: false,
-          error: "Nepodařilo se spočítat pokusy",
-          details: countError.message,
+          error: "Nepodařilo se načíst pokusy",
+          details: attemptsError.message,
         },
         { status: 500 }
       );
     }
 
-    const attemptsUsedCount = attemptsUsed ?? 0;
+    const attemptsInWindow = windowAttempts || [];
+    const attemptsUsedCount = attemptsInWindow.length;
 
-    // 5️⃣ Check if out of attempts (BEFORE new attempt)
+    // 6️⃣ Check if already solved in this window (cooldown active)
+    const lastCorrectInWindow = attemptsInWindow.find((a) => a.is_correct);
+    const alreadySolved = !!lastCorrectInWindow;
+
+    if (alreadySolved) {
+      const nextAvailable = new Date(new Date(lastCorrectInWindow.created_at).getTime() + cooldownHours * 60 * 60 * 1000);
+      const attemptsLeft = Math.max(0, maxAttempts - attemptsUsedCount);
+
+      return NextResponse.json({
+        ok: true,
+        correct: false,
+        xp_delta: 0,
+        attempts_left: attemptsLeft,
+        max_attempts: maxAttempts,
+        solved: true,
+        next_available_at: nextAvailable.toISOString(),
+        error: "Cooldown",
+      });
+    }
+
+    // 7️⃣ Check if out of attempts (BEFORE new attempt)
     if (attemptsUsedCount >= maxAttempts) {
       return NextResponse.json({
         ok: true,
@@ -97,27 +126,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // 6️⃣ Check if already solved (for XP award logic only, NOT for blocking attempts)
-    const { data: solvedAttempt, error: solvedError } = await supabase
-      .from("place_riddle_attempts")
-      .select("id")
-      .eq("riddle_id", riddle.id)
-      .eq("user_id", user.id)
-      .eq("is_correct", true)
-      .maybeSingle();
-
-    if (solvedError) {
-      console.error("Solved check error:", {
-        code: solvedError.code,
-        message: solvedError.message,
-        details: (solvedError as any).details,
-        hint: (solvedError as any).hint,
-      });
-    }
-
-    const alreadySolved = !!solvedAttempt;
-
-    // 7️⃣ Verify answer (ALWAYS evaluate, regardless of solved state)
+    // 8️⃣ Verify answer
     let correct = false;
 
     if (riddle.answer_type === "number") {
@@ -133,7 +142,7 @@ export async function POST(req: Request) {
         normalizeText(String(answer_plain));
     }
 
-    // 8️⃣ Log attempt
+    // 9️⃣ Log attempt
     const { error: insertError } = await supabase
       .from("place_riddle_attempts")
       .insert({
@@ -160,20 +169,28 @@ export async function POST(req: Request) {
       );
     }
 
-    // 9️⃣ Calculate attempts_left AFTER inserting the new attempt
+    // 🔟 Calculate attempts_left AFTER inserting the new attempt
     const newAttemptsUsed = attemptsUsedCount + 1;
     const attemptsLeft = Math.max(0, maxAttempts - newAttemptsUsed);
 
-    // Calculate XP (only on FIRST correct attempt)
-    const xpDelta = correct && !alreadySolved ? (riddle.xp_reward ?? 0) : 0;
+    // Calculate XP (only on FIRST correct attempt in window, alreadySolved is false here)
+    const xpDelta = correct ? (riddle.xp_reward ?? 0) : 0;
+
+    // Compute next_available_at if this was a correct solve
+    let nextAvailableAt: string | null = null;
+    if (correct) {
+      const nextAvailable = new Date(now.getTime() + cooldownHours * 60 * 60 * 1000);
+      nextAvailableAt = nextAvailable.toISOString();
+    }
 
     return NextResponse.json({
       ok: true,
       correct,
-      already_solved: alreadySolved,
       xp_delta: xpDelta,
       attempts_left: attemptsLeft,
       max_attempts: maxAttempts,
+      solved: correct,
+      next_available_at: nextAvailableAt,
     });
   } catch (err: any) {
     console.error("Riddle attempt fatal error:", err);

@@ -6,6 +6,7 @@ export type PublicRiddle = {
   answer_type: "text" | "number";
   xp_reward: number;
   max_attempts: number;
+  cooldown_hours: number;
   is_active: boolean;
   created_by: string;
 };
@@ -26,7 +27,7 @@ export async function getPublicRiddlesForPlace(
 
     const { data, error } = await supabase
       .from("place_riddles")
-      .select("id, prompt, answer_type, xp_reward, max_attempts, is_active, created_by")
+      .select("id, prompt, answer_type, xp_reward, max_attempts, cooldown_hours, is_active, created_by")
       .eq("place_id", placeId)
       .eq("is_active", true)
       .order("created_at", { ascending: true });

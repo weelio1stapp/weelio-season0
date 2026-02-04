@@ -24,10 +24,31 @@ type Riddle = {
   answer_type: "text" | "number";
   xp_reward: number;
   max_attempts?: number;
+  cooldown_hours?: number;
   attempts_left?: number;
   solved?: boolean;
   can_delete?: boolean;
+  next_available_at?: string | null;
 };
+
+// Helper to format time remaining until next_available_at
+function formatTimeRemaining(nextAvailableAt: string | null): string {
+  if (!nextAvailableAt) return "";
+
+  const now = new Date();
+  const next = new Date(nextAvailableAt);
+  const diffMs = next.getTime() - now.getTime();
+
+  if (diffMs <= 0) return "nyní";
+
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
+}
 
 type PlaceRiddlesProps = {
   placeId: string;
@@ -150,6 +171,20 @@ export default function PlaceRiddles({
 
       // Refetch status after every attempt to update attempts_left and solved state
       await refetchStatus();
+
+      // Handle cooldown error
+      if (data.error === "Cooldown" && data.next_available_at) {
+        const timeLeft = formatTimeRemaining(data.next_available_at);
+        toast.info(`Už splněno, znovu za ${timeLeft}`);
+        setFeedback({
+          ...feedback,
+          [riddleId]: {
+            type: "success",
+            message: `Už máš vyřešeno. Znovu za ${timeLeft}`,
+          },
+        });
+        return;
+      }
 
       if (data.correct) {
         // Correct answer!
@@ -309,6 +344,11 @@ export default function PlaceRiddles({
                       <p className="text-sm text-green-700 dark:text-green-400 font-medium">
                         ✅ {copy.riddles.solved}
                       </p>
+                      {riddle.next_available_at && (
+                        <p className="text-xs text-green-600 dark:text-green-500 mt-1">
+                          Znovu za: {formatTimeRemaining(riddle.next_available_at)}
+                        </p>
+                      )}
                     </div>
                   ) : attemptsLeft === 0 ? (
                     <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">

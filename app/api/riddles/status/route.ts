@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     // 1) Load all active riddles for place
     const { data: riddles, error: riddlesError } = await supabase
       .from("place_riddles")
-      .select("id, place_id, prompt, answer_type, xp_reward, max_attempts, created_by, created_at")
+      .select("id, place_id, prompt, answer_type, xp_reward, max_attempts, cooldown_hours, created_by, created_at")
       .eq("place_id", place_id)
       .eq("is_active", true)
       .order("created_at", { ascending: true });
@@ -52,19 +52,20 @@ export async function POST(req: Request) {
       });
     }
 
-    // 2) If user is authenticated, load attempts and solves
-    let attemptsMap = new Map<string, number>(); // riddle_id -> count
-    let solvedSet = new Set<string>(); // riddle_id
+    // 2) If user is authenticated, load attempts and solves (windowed by cooldown)
+    let attemptsMap = new Map<string, number>(); // riddle_id -> count within window
+    let solvedMap = new Map<string, Date>(); // riddle_id -> created_at of last correct attempt
 
     if (user) {
       const riddleIds = riddles.map((r) => r.id);
 
-      // Count attempts per riddle
-      const { data: attemptCounts, error: attemptsError } = await supabase
+      // Load ALL attempts for this user for these riddles (need created_at for windowing)
+      const { data: allAttempts, error: attemptsError } = await supabase
         .from("place_riddle_attempts")
-        .select("riddle_id")
+        .select("riddle_id, is_correct, created_at")
         .eq("user_id", user.id)
-        .in("riddle_id", riddleIds);
+        .in("riddle_id", riddleIds)
+        .order("created_at", { ascending: false });
 
       if (attemptsError) {
         console.error("Load attempts error:", {
@@ -75,44 +76,52 @@ export async function POST(req: Request) {
         });
       }
 
-      if (!attemptsError && attemptCounts) {
-        attemptCounts.forEach((a) => {
-          const count = attemptsMap.get(a.riddle_id) || 0;
-          attemptsMap.set(a.riddle_id, count + 1);
-        });
-      }
+      // Process attempts per riddle with windowing
+      if (!attemptsError && allAttempts) {
+        const now = new Date();
 
-      // Check which are solved
-      const { data: solves, error: solvesError } = await supabase
-        .from("place_riddle_attempts")
-        .select("riddle_id")
-        .eq("user_id", user.id)
-        .eq("is_correct", true)
-        .in("riddle_id", riddleIds);
+        riddles.forEach((riddle) => {
+          const cooldownHours = riddle.cooldown_hours ?? 24;
+          const windowStart = new Date(now.getTime() - cooldownHours * 60 * 60 * 1000);
 
-      if (solvesError) {
-        console.error("Load solves error:", {
-          code: solvesError.code,
-          message: solvesError.message,
-          details: (solvesError as any).details,
-          hint: (solvesError as any).hint,
-        });
-      }
+          const riddleAttempts = allAttempts.filter((a) => a.riddle_id === riddle.id);
 
-      if (!solvesError && solves) {
-        solves.forEach((s) => {
-          solvedSet.add(s.riddle_id);
+          // Count attempts within window
+          const windowedAttempts = riddleAttempts.filter((a) => {
+            const attemptDate = new Date(a.created_at);
+            return attemptDate >= windowStart;
+          });
+          attemptsMap.set(riddle.id, windowedAttempts.length);
+
+          // Find last correct attempt within window
+          const lastCorrect = riddleAttempts.find((a) => {
+            const attemptDate = new Date(a.created_at);
+            return a.is_correct && attemptDate >= windowStart;
+          });
+
+          if (lastCorrect) {
+            solvedMap.set(riddle.id, new Date(lastCorrect.created_at));
+          }
         });
       }
     }
 
-    // 3) Enrich each riddle with attempts_left, solved, can_delete
+    // 3) Enrich each riddle with attempts_left, solved, can_delete, next_available_at
     const enriched = riddles.map((r) => {
       const maxAttempts = r.max_attempts ?? 3;
+      const cooldownHours = r.cooldown_hours ?? 24;
       const attemptsUsed = attemptsMap.get(r.id) || 0;
       const attemptsLeft = Math.max(0, maxAttempts - attemptsUsed);
-      const solved = solvedSet.has(r.id);
+      const lastCorrectDate = solvedMap.get(r.id);
+      const solved = !!lastCorrectDate;
       const canDelete = user?.id ? r.created_by === user.id : false;
+
+      // Compute next_available_at if solved
+      let nextAvailableAt: string | null = null;
+      if (lastCorrectDate) {
+        const nextAvailable = new Date(lastCorrectDate.getTime() + cooldownHours * 60 * 60 * 1000);
+        nextAvailableAt = nextAvailable.toISOString();
+      }
 
       return {
         id: r.id,
@@ -121,6 +130,7 @@ export async function POST(req: Request) {
         answer_type: r.answer_type,
         xp_reward: r.xp_reward,
         max_attempts: maxAttempts,
+        cooldown_hours: cooldownHours,
         created_by: r.created_by,
         created_at: r.created_at,
 
@@ -128,6 +138,7 @@ export async function POST(req: Request) {
         attempts_left: attemptsLeft,
         solved,
         can_delete: canDelete,
+        next_available_at: nextAvailableAt,
       };
     });
 

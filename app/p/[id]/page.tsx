@@ -101,43 +101,73 @@ export default async function PlaceDetailPage({
     created_at: typeof e.created_at === "string" ? e.created_at : new Date(e.created_at).toISOString(),
   }));
 
-  // Load attempts and solved status for current user
+  // Load attempts and solved status for current user (windowed by cooldown)
   const riddleIds = riddles.map((r) => r.id);
-  const solvedRiddleIds = currentUserId && riddleIds.length > 0
-    ? await getMySolvedRiddles(riddleIds)
-    : new Set<string>();
-  const solvedRiddleIdsArray = Array.from(solvedRiddleIds);
-
-  // Count attempts per riddle for current user
   let attemptsMap = new Map<string, number>();
-  if (currentUserId && riddleIds.length > 0) {
-    const { data: attempts } = await supabase
-      .from("place_riddle_attempts")
-      .select("riddle_id")
-      .eq("user_id", currentUserId)
-      .in("riddle_id", riddleIds);
+  let solvedMap = new Map<string, Date>();
+  const solvedRiddleIdsArray: string[] = [];
 
-    if (attempts) {
-      attempts.forEach((a) => {
-        const count = attemptsMap.get(a.riddle_id) || 0;
-        attemptsMap.set(a.riddle_id, count + 1);
+  if (currentUserId && riddleIds.length > 0) {
+    const { data: allAttempts } = await supabase
+      .from("place_riddle_attempts")
+      .select("riddle_id, is_correct, created_at")
+      .eq("user_id", currentUserId)
+      .in("riddle_id", riddleIds)
+      .order("created_at", { ascending: false });
+
+    if (allAttempts) {
+      const now = new Date();
+
+      riddles.forEach((riddle) => {
+        const cooldownHours = riddle.cooldown_hours ?? 24;
+        const windowStart = new Date(now.getTime() - cooldownHours * 60 * 60 * 1000);
+
+        const riddleAttempts = allAttempts.filter((a) => a.riddle_id === riddle.id);
+
+        // Count attempts within window
+        const windowedAttempts = riddleAttempts.filter((a) => {
+          const attemptDate = new Date(a.created_at);
+          return attemptDate >= windowStart;
+        });
+        attemptsMap.set(riddle.id, windowedAttempts.length);
+
+        // Find last correct attempt within window
+        const lastCorrect = riddleAttempts.find((a) => {
+          const attemptDate = new Date(a.created_at);
+          return a.is_correct && attemptDate >= windowStart;
+        });
+
+        if (lastCorrect) {
+          solvedMap.set(riddle.id, new Date(lastCorrect.created_at));
+          solvedRiddleIdsArray.push(riddle.id);
+        }
       });
     }
   }
 
-  // Enrich riddles with attempts_left, solved, can_delete
+  // Enrich riddles with attempts_left, solved, can_delete, next_available_at
   const enrichedRiddles = riddles.map((r) => {
     const maxAttempts = r.max_attempts ?? 3;
+    const cooldownHours = r.cooldown_hours ?? 24;
     const attemptsUsed = attemptsMap.get(r.id) || 0;
     const attemptsLeft = Math.max(0, maxAttempts - attemptsUsed);
-    const solved = solvedRiddleIds.has(r.id);
+    const lastCorrectDate = solvedMap.get(r.id);
+    const solved = !!lastCorrectDate;
     const canDelete = currentUserId ? r.created_by === currentUserId : false;
+
+    // Compute next_available_at if solved
+    let nextAvailableAt: string | null = null;
+    if (lastCorrectDate) {
+      const nextAvailable = new Date(lastCorrectDate.getTime() + cooldownHours * 60 * 60 * 1000);
+      nextAvailableAt = nextAvailable.toISOString();
+    }
 
     return {
       ...r,
       attempts_left: attemptsLeft,
       solved,
       can_delete: canDelete,
+      next_available_at: nextAvailableAt,
     };
   });
 
