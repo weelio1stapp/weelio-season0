@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { riddle_id } = body;
+    const { riddle_id } = body ?? {};
 
     if (!riddle_id) {
       return NextResponse.json(
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Zajisti, že mazat může jen autor kešky (nebo admin – pokud máš roli)
+    // jen autor může mazat
     const { data: riddle, error: riddleError } = await supabase
       .from("place_riddles")
       .select("id, created_by")
@@ -48,14 +48,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const { error } = await supabase
+    const { error: delError } = await supabase
       .from("place_riddles")
-      .update({ is_active: false })
+      .delete()
       .eq("id", riddle_id);
 
-    if (error) {
+    if (delError) {
       return NextResponse.json(
-        { ok: false, error: "Nepodařilo se smazat kešku", details: error.message },
+        { ok: false, error: "Nepodařilo se smazat kešku", details: delError.message },
         { status: 500 }
       );
     }
@@ -64,7 +64,11 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error("Riddle delete fatal error:", err);
     return NextResponse.json(
-      { ok: false, error: "Nepodařilo se smazat kešku", details: err?.message ?? "Unknown error" },
+      {
+        ok: false,
+        error: "Nepodařilo se smazat kešku",
+        details: err?.message ?? "Unknown error",
+      },
       { status: 500 }
     );
   }
