@@ -20,6 +20,7 @@ export default function CreateRiddleModal({
   const [answerType, setAnswerType] = useState<"text" | "number">("text");
   const [answerPlain, setAnswerPlain] = useState("");
   const [xpReward, setXpReward] = useState(15);
+  const [maxAttempts, setMaxAttempts] = useState(3);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +49,12 @@ export default function CreateRiddleModal({
         return;
       }
 
+      if (maxAttempts < 1 || maxAttempts > 4) {
+        setError("Počet pokusů musí být mezi 1 a 4");
+        setIsSubmitting(false);
+        return;
+      }
+
       const response = await fetch("/api/riddles/create", {
         method: "POST",
         headers: {
@@ -59,6 +66,7 @@ export default function CreateRiddleModal({
           answer_type: answerType,
           answer_plain: answerPlain.trim(),
           xp_reward: xpReward,
+          max_attempts: maxAttempts,
         }),
       });
 
@@ -73,6 +81,7 @@ export default function CreateRiddleModal({
       setAnswerType("text");
       setAnswerPlain("");
       setXpReward(15);
+      setMaxAttempts(3);
       onSuccess();
     } catch (err: any) {
       console.error("Riddle create error:", err);
@@ -167,6 +176,29 @@ export default function CreateRiddleModal({
               {answerType === "text"
                 ? "Textové odpovědi jsou case-insensitive"
                 : "Musí přesně odpovídat číslu"}
+            </p>
+          </div>
+
+          {/* Max Attempts */}
+          <div>
+            <label
+              htmlFor="max_attempts"
+              className="block text-sm font-medium text-[var(--text-primary)] mb-2"
+            >
+              Počet pokusů
+            </label>
+            <input
+              type="number"
+              id="max_attempts"
+              value={maxAttempts}
+              onChange={(e) => setMaxAttempts(parseInt(e.target.value))}
+              min={1}
+              max={4}
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
+              disabled={isSubmitting}
+            />
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              Kolik pokusů má uživatel na vyřešení (1-4)
             </p>
           </div>
 

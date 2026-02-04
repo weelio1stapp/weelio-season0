@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,10 @@ type Riddle = {
   prompt: string;
   answer_type: "text" | "number";
   xp_reward: number;
+  max_attempts?: number;
+  attempts_left?: number;
+  solved?: boolean;
+  can_delete?: boolean;
 };
 
 type PlaceRiddlesProps = {
@@ -45,6 +49,7 @@ export default function PlaceRiddles({
   const solvedSet = new Set(initialSolved);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
+  const [deleting, setDeleting] = useState<Record<string, boolean>>({});
   const [feedback, setFeedback] = useState<
     Record<
       string,
@@ -52,6 +57,38 @@ export default function PlaceRiddles({
     >
   >({});
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const handleDelete = async (riddleId: string) => {
+    if (!confirm("Opravdu chceš smazat tuto kešku?")) {
+      return;
+    }
+
+    setDeleting({ ...deleting, [riddleId]: true });
+
+    try {
+      const response = await fetch("/api/riddles/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ riddle_id: riddleId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Nepodařilo se smazat kešku");
+      }
+
+      // Refresh to remove deleted riddle
+      router.refresh();
+    } catch (err: any) {
+      console.error("Riddle delete error:", err);
+      alert(err.message || "Nepodařilo se smazat kešku");
+    } finally {
+      setDeleting({ ...deleting, [riddleId]: false });
+    }
+  };
 
   const handleAttempt = async (riddleId: string, riddleType: string) => {
     const answer = answers[riddleId]?.trim();
@@ -186,24 +223,47 @@ export default function PlaceRiddles({
         {riddles.length > 0 ? (
           <div className="space-y-4">
             {riddles.map((riddle) => {
-              const isSolved = solvedSet.has(riddle.id);
+              const isSolved = riddle.solved ?? solvedSet.has(riddle.id);
               const isSubmitting = submitting[riddle.id] || false;
+              const isDeleting = deleting[riddle.id] || false;
               const riddleFeedback = feedback[riddle.id];
+              const maxAttempts = riddle.max_attempts ?? 3;
+              const attemptsLeft = riddle.attempts_left ?? maxAttempts;
 
               return (
                 <div
                   key={riddle.id}
                   className="p-4 rounded-lg border bg-card"
                 >
-                  {/* Prompt */}
+                  {/* Prompt + Actions */}
                   <div className="flex items-start justify-between mb-3">
                     <p className="text-sm flex-1">
                       {riddle.prompt}
                     </p>
-                    <Badge variant="secondary" className="ml-3">
-                      +{riddle.xp_reward} XP
-                    </Badge>
+                    <div className="flex items-center gap-2 ml-3">
+                      <Badge variant="secondary">
+                        +{riddle.xp_reward} XP
+                      </Badge>
+                      {riddle.can_delete && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(riddle.id)}
+                          disabled={isDeleting}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Attempts Info */}
+                  {!isSolved && (
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Zbývá {attemptsLeft} z {maxAttempts} pokusů
+                    </p>
+                  )}
 
                   {/* Input + Submit */}
                   {isSolved ? (

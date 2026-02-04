@@ -20,14 +20,15 @@ export async function POST(req: Request) {
 
     // 2️⃣ Body
     const body = await req.json();
-    const { place_id, prompt, answer_type, answer_plain, xp_reward } = body;
+    const { place_id, prompt, answer_type, answer_plain, xp_reward, max_attempts } = body;
 
     if (
       !place_id ||
       !prompt ||
       !answer_type ||
       answer_plain === undefined ||
-      xp_reward === undefined
+      xp_reward === undefined ||
+      max_attempts === undefined
     ) {
       return NextResponse.json(
         { ok: false, error: "Neplatná data" },
@@ -35,7 +36,16 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3️⃣ INSERT místo RPC
+    // Validate max_attempts (1-4)
+    const maxAttemptsNum = Number(max_attempts);
+    if (!Number.isInteger(maxAttemptsNum) || maxAttemptsNum < 1 || maxAttemptsNum > 4) {
+      return NextResponse.json(
+        { ok: false, error: "max_attempts musí být číslo 1-4" },
+        { status: 400 }
+      );
+    }
+
+    // 3️⃣ INSERT
     const { data, error } = await supabase
       .from("place_riddles")
       .insert({
@@ -44,6 +54,8 @@ export async function POST(req: Request) {
         answer_type,
         answer_plain,
         xp_reward,
+        max_attempts: maxAttemptsNum,
+        is_active: true,
         created_by: user.id,
       })
       .select("id")
