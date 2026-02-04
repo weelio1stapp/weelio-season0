@@ -66,6 +66,15 @@ export async function POST(req: Request) {
         .eq("user_id", user.id)
         .in("riddle_id", riddleIds);
 
+      if (attemptsError) {
+        console.error("Load attempts error:", {
+          code: attemptsError.code,
+          message: attemptsError.message,
+          details: (attemptsError as any).details,
+          hint: (attemptsError as any).hint,
+        });
+      }
+
       if (!attemptsError && attemptCounts) {
         attemptCounts.forEach((a) => {
           const count = attemptsMap.get(a.riddle_id) || 0;
@@ -80,6 +89,15 @@ export async function POST(req: Request) {
         .eq("user_id", user.id)
         .eq("is_correct", true)
         .in("riddle_id", riddleIds);
+
+      if (solvesError) {
+        console.error("Load solves error:", {
+          code: solvesError.code,
+          message: solvesError.message,
+          details: (solvesError as any).details,
+          hint: (solvesError as any).hint,
+        });
+      }
 
       if (!solvesError && solves) {
         solves.forEach((s) => {

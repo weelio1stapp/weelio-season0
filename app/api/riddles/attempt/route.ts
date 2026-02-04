@@ -59,7 +59,7 @@ export async function POST(req: Request) {
 
     const maxAttempts = riddle.max_attempts ?? 3;
 
-    // 4️⃣ Count attempts_used for this user + riddle
+    // 4️⃣ Count attempts_used for this user + riddle (BEFORE new attempt)
     const { count: attemptsUsed, error: countError } = await supabase
       .from("place_riddle_attempts")
       .select("id", { count: "exact", head: true })
@@ -67,9 +67,18 @@ export async function POST(req: Request) {
       .eq("user_id", user.id);
 
     if (countError) {
-      console.error("Count attempts error:", countError);
+      console.error("Count attempts error:", {
+        code: countError.code,
+        message: countError.message,
+        details: (countError as any).details,
+        hint: (countError as any).hint,
+      });
       return NextResponse.json(
-        { ok: false, error: "Nepodařilo se spočítat pokusy" },
+        {
+          ok: false,
+          error: "Nepodařilo se spočítat pokusy",
+          details: countError.message,
+        },
         { status: 500 }
       );
     }
@@ -86,30 +95,37 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     if (solvedError) {
-      console.error("Solved check error:", solvedError);
+      console.error("Solved check error:", {
+        code: solvedError.code,
+        message: solvedError.message,
+        details: (solvedError as any).details,
+        hint: (solvedError as any).hint,
+      });
     }
 
     const alreadySolved = !!solvedAttempt;
-    const attemptsLeft = Math.max(0, maxAttempts - attemptsUsedCount);
 
-    // If already solved, return success with 0 XP
+    // If already solved, return success with 0 XP and current attempts_left
     if (alreadySolved) {
+      const attemptsLeft = Math.max(0, maxAttempts - attemptsUsedCount);
       return NextResponse.json({
         ok: true,
         correct: true,
         xp_delta: 0,
         attempts_left: attemptsLeft,
+        max_attempts: maxAttempts,
         already_solved: true,
       });
     }
 
-    // 6️⃣ Check if out of attempts
+    // 6️⃣ Check if out of attempts (BEFORE new attempt)
     if (attemptsUsedCount >= maxAttempts) {
       return NextResponse.json({
         ok: true,
         correct: false,
         xp_delta: 0,
         attempts_left: 0,
+        max_attempts: maxAttempts,
         error: "Došly pokusy",
       });
     }
@@ -141,22 +157,35 @@ export async function POST(req: Request) {
       });
 
     if (insertError) {
-      console.error("Insert attempt error:", insertError);
+      console.error("Insert attempt error:", {
+        code: insertError.code,
+        message: insertError.message,
+        details: (insertError as any).details,
+        hint: (insertError as any).hint,
+      });
       return NextResponse.json(
-        { ok: false, error: "Nepodařilo se zapsat pokus" },
+        {
+          ok: false,
+          error: "Nepodařilo se zapsat pokus",
+          details: insertError.message,
+        },
         { status: 500 }
       );
     }
 
-    // 9️⃣ Calculate XP (only on first correct attempt)
+    // 9️⃣ Calculate attempts_left AFTER inserting the new attempt
+    const newAttemptsUsed = attemptsUsedCount + 1;
+    const attemptsLeft = Math.max(0, maxAttempts - newAttemptsUsed);
+
+    // Calculate XP (only on first correct attempt)
     const xpDelta = correct ? (riddle.xp_reward ?? 0) : 0;
-    const newAttemptsLeft = Math.max(0, maxAttempts - (attemptsUsedCount + 1));
 
     return NextResponse.json({
       ok: true,
       correct,
       xp_delta: xpDelta,
-      attempts_left: newAttemptsLeft,
+      attempts_left: attemptsLeft,
+      max_attempts: maxAttempts,
     });
   } catch (err: any) {
     console.error("Riddle attempt fatal error:", err);
