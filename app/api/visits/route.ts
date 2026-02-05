@@ -4,6 +4,8 @@ import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
 type Body = {
   placeId: string;
   source?: string;
+  note?: string;
+  mode?: string; // 'note' | 'photo' | 'audio'
 };
 
 export async function POST(req: Request) {
@@ -33,7 +35,9 @@ export async function POST(req: Request) {
   }
 
   const placeId = body.placeId;
-  const source = body.source ?? "button";
+  const source = body.source ?? "manual";
+  const note = body.note?.trim() || null;
+  const mode = body.mode || "button";
 
   if (!placeId) {
     return NextResponse.json(
@@ -42,55 +46,64 @@ export async function POST(req: Request) {
     );
   }
 
-  /* 3️⃣ JEDINÝ ZDROJ PRAVDY – RPC */
-  const { data, error } = await supabase.rpc(
-    "record_visit_and_progress",
-    {
+  /* 3️⃣ RECORD VISIT WITH NOTE (using new RPC) */
+  const { data: visitData, error: visitError } = await supabase
+    .rpc("record_visit_with_note", {
       p_place_id: placeId,
-      p_user_id: userId,
-      p_source: source,
-    }
-  );
+      p_note: note,
+    })
+    .single();
 
-  if (error) {
-    console.error("record_visit_and_progress error:", {
-      code: error.code,
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
+  if (visitError) {
+    console.error("record_visit_with_note error:", {
+      code: visitError.code,
+      message: visitError.message,
+      details: visitError.details,
+      hint: visitError.hint,
     });
 
     return NextResponse.json(
       {
         ok: false,
-        error: "record_visit_and_progress failed",
+        error: "Failed to record visit",
         rpc: {
-          code: error.code,
-          message: error.message,
-          details: error.details,
+          code: visitError.code,
+          message: visitError.message,
+          details: visitError.details,
         },
       },
       { status: 500 }
     );
   }
 
-  /* 4️⃣ RPC vrací 1 řádek (TABLE) */
-  const row = Array.isArray(data) ? data[0] : data;
+  const visitResult = visitData as {
+    visit_id: string;
+    journal_entry_id: string | null;
+    is_duplicate: boolean;
+  };
 
-  /* 5️⃣ Award XP using new award_xp system (idempotent per day) */
-  const visitDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-  const dailyBucketKey = `${placeId}:${visitDate}`;
-  const VISIT_XP = 5; // XP per visit (once per place per day)
+  // If duplicate visit, don't award XP again
+  if (visitResult.is_duplicate) {
+    return NextResponse.json({
+      ok: true,
+      xp_delta: 0,
+      is_duplicate: true,
+      message: "Už jsi tu dnes byl",
+    });
+  }
+
+  /* 4️⃣ Award XP using visit_id for idempotence */
+  const VISIT_XP = 10; // Base XP per visit
 
   let xpAwarded = 0;
-  let totalXp = row?.xp_total ?? 0;
+  let totalXp = 0;
   let level = 1;
 
   try {
     const { data: xpResult, error: xpError } = await supabase
       .rpc("award_xp", {
-        p_source: "visit",
-        p_source_id: dailyBucketKey,
+        p_source: "place_visit",
+        p_source_id: visitResult.visit_id, // Use visit_id for perfect idempotence
         p_xp_delta: VISIT_XP,
       })
       .single();
@@ -104,7 +117,12 @@ export async function POST(req: Request) {
       });
       // Don't fail the request, just log the error
     } else if (xpResult) {
-      const result = xpResult as { awarded: boolean; xp_delta: number; xp_total: number; level: number };
+      const result = xpResult as {
+        awarded: boolean;
+        xp_delta: number;
+        xp_total: number;
+        level: number;
+      };
       xpAwarded = result.xp_delta || 0;
       totalXp = result.xp_total || 0;
       level = result.level || 1;
@@ -115,11 +133,10 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     ok: true,
-    xp_delta: (row?.xp_delta ?? 0) + xpAwarded,
+    xp_delta: xpAwarded,
     xp_total: totalXp,
     level: level,
-    streak_weeks: row?.streak_weeks ?? 0,
-    best_streak_weeks: row?.best_streak_weeks ?? 0,
-    visit_xp_awarded: xpAwarded > 0, // Indicates if daily visit XP was awarded
+    visit_id: visitResult.visit_id,
+    journal_entry_id: visitResult.journal_entry_id,
   });
 }

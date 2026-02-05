@@ -70,7 +70,7 @@ export default function PlaceOnSiteActions({
                   Byl jsem tady
                 </Button>
                 <p className="text-xs text-center text-muted-foreground">
-                  Použij až na místě
+                  Použij až na místě – ideálně hned po příchodu.
                 </p>
               </>
             )}

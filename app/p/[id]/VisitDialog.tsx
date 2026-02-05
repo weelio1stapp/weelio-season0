@@ -40,13 +40,15 @@ export default function VisitDialog({
     setIsSubmitting(true);
 
     try {
-      // Call visit API (existing endpoint)
+      // Call visit API with note
       const response = await fetch("/api/visits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           placeId,
           source: "manual",
+          note: noteText.trim() || null,
+          mode: activeTab,
         }),
       });
 
@@ -56,10 +58,25 @@ export default function VisitDialog({
         throw new Error(data.error || "Nepodařilo se potvrdit návštěvu");
       }
 
+      // Handle duplicate visit
+      if (data.is_duplicate) {
+        toast.info("Už jsi tu dnes byl", {
+          description: "Můžeš navštívit znovu zítra",
+        });
+        onOpenChange(false);
+        setNoteText("");
+        setActiveTab("note");
+        return;
+      }
+
       // Success - show XP toast
       const xpDelta = data.xp_delta || 0;
+      const hasNote = noteText.trim().length > 0;
+
       toast.success(`Návštěva potvrzena! +${xpDelta} XP`, {
-        description: "Tvá stopa byla zanechána",
+        description: hasNote
+          ? "Tvá stopa a poznámka byly zanechány"
+          : "Tvá stopa byla zanechána",
       });
 
       // Close dialog
