@@ -10,8 +10,22 @@ export type ActionResult = {
   message?: string;
 };
 
+function parseBoolean(value: FormDataEntryValue | null): boolean {
+  if (value === null) return false;
+  const v = value.toString().toLowerCase();
+  return v === "true" || v === "1" || v === "on" || v === "yes";
+}
+
+function parseNullableNumber(raw: string | null | undefined): number | null {
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
 /**
  * Create a new activity
+ * DB expects: title, slug, description, type, location_name, lat, lng, is_public
+ * NOTE: created_by is handled by DB default auth.uid()
  */
 export async function createActivity(
   prevState: ActionResult,
@@ -23,64 +37,61 @@ export async function createActivity(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return {
-      success: false,
-      message: "Musíš být přihlášený",
-    };
+    return { success: false, message: "Musíš být přihlášený" };
   }
 
-  // Parse form data
-  const title = formData.get("title")?.toString().trim();
-  const slug = formData.get("slug")?.toString().trim();
-  const description = formData.get("description")?.toString().trim();
-  const location_name = formData.get("location_name")?.toString().trim();
-  const lat = formData.get("lat")?.toString().trim();
-  const lng = formData.get("lng")?.toString().trim();
-  const is_public = formData.get("is_public") === "true";
+  const title = formData.get("title")?.toString().trim() ?? "";
+  const slug = formData.get("slug")?.toString().trim() ?? "";
+  const type = formData.get("type")?.toString().trim() || "run_club";
+  const description = formData.get("description")?.toString().trim() || null;
+  const location_name = formData.get("location_name")?.toString().trim() || null;
 
-  // Validation
+  const latRaw = formData.get("lat")?.toString().trim();
+  const lngRaw = formData.get("lng")?.toString().trim();
+  const is_public = parseBoolean(formData.get("is_public"));
+
   const errors: Record<string, string> = {};
 
-  if (!title || title.length < 3) {
+  if (title.length < 3) {
     errors.title = "Název musí mít alespoň 3 znaky";
   }
 
-  if (!slug || slug.length < 3) {
+  if (slug.length < 3) {
     errors.slug = "Slug musí mít alespoň 3 znaky";
   } else if (!/^[a-z0-9-]+$/.test(slug)) {
     errors.slug = "Slug může obsahovat pouze malá písmena, číslice a pomlčky";
+  }
+
+  const lat = parseNullableNumber(latRaw);
+  const lng = parseNullableNumber(lngRaw);
+
+  // If one coordinate is provided, require the other.
+  if ((latRaw && !lngRaw) || (!latRaw && lngRaw)) {
+    errors.lat = "Zadej obě souřadnice (lat i lng), nebo žádnou";
+    errors.lng = "Zadej obě souřadnice (lat i lng), nebo žádnou";
+  }
+
+  if ((latRaw || lngRaw) && (lat === null || lng === null)) {
+    errors.lat = "Neplatné souřadnice";
+    errors.lng = "Neplatné souřadnice";
   }
 
   if (Object.keys(errors).length > 0) {
     return { success: false, errors };
   }
 
-  // Parse coordinates if provided
-  let location_point = null;
-  if (lat && lng) {
-    const latNum = parseFloat(lat);
-    const lngNum = parseFloat(lng);
-
-    if (isNaN(latNum) || isNaN(lngNum)) {
-      errors.lat = "Neplatné souřadnice";
-      return { success: false, errors };
-    }
-
-    // PostGIS Point format: "POINT(lng lat)"
-    location_point = `POINT(${lngNum} ${latNum})`;
-  }
-
-  // Insert activity
   const { data: activity, error } = await supabase
     .from("activities")
     .insert({
       title,
       slug,
-      description: description || null,
-      location_name: location_name || null,
-      location_point,
+      type,
+      description,
+      location_name,
+      lat,
+      lng,
       is_public,
-      created_by: user.id,
+      // created_by: user.id, // intentionally omitted; DB default auth.uid()
     })
     .select("slug")
     .single();
@@ -89,26 +100,18 @@ export async function createActivity(
     console.error("Create activity error:", error);
 
     if (error.code === "23505") {
-      // Unique constraint violation
-      return {
-        success: false,
-        errors: { slug: "Tento slug již existuje" },
-      };
+      return { success: false, errors: { slug: "Tento slug již existuje" } };
     }
 
-    return {
-      success: false,
-      message: `Chyba při vytváření: ${error.message}`,
-    };
+    return { success: false, message: `Chyba při vytváření: ${error.message}` };
   }
 
-  // Revalidate and redirect
   revalidatePath("/activities");
   redirect(`/activities/${activity.slug}`);
 }
 
 /**
- * Create a new occurrence for an activity
+ * Create a new occurrence for an activity (organizer-only)
  */
 export async function createOccurrence(
   activityId: string,
@@ -119,65 +122,54 @@ export async function createOccurrence(
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return {
-      success: false,
-      message: "Musíš být přihlášený",
-    };
-  }
+  if (!user) return { success: false, message: "Musíš být přihlášený" };
 
-  // Check if user is organizer
-  const { data: isOrganizer } = await supabase.rpc("is_activity_organizer", {
-    p_activity_id: activityId,
-    p_user_id: user.id,
-  });
+  // Organizer check (server-side)
+  const { data: isOrganizer, error: orgErr } = await supabase.rpc(
+    "is_activity_organizer",
+    {
+      p_activity_id: activityId,
+      p_user_id: user.id,
+    }
+  );
+
+  if (orgErr) {
+    console.error("Organizer check error:", orgErr);
+    return { success: false, message: "Nepodařilo se ověřit roli organizátora" };
+  }
 
   if (!isOrganizer) {
-    return {
-      success: false,
-      message: "Pouze organizátor může přidávat běhy",
-    };
+    return { success: false, message: "Pouze organizátor může přidávat běhy" };
   }
 
-  // Validate datetime
   if (!startsAt) {
-    return {
-      success: false,
-      message: "Musíš zadat datum a čas",
-    };
+    return { success: false, message: "Musíš zadat datum a čas" };
   }
 
-  // Insert occurrence
   const { error } = await supabase.from("activity_occurrences").insert({
     activity_id: activityId,
     starts_at: startsAt,
-    created_by: user.id,
+    // created_by: user.id, // optional; DB default auth.uid()
   });
 
   if (error) {
     console.error("Create occurrence error:", error);
 
     if (error.code === "23505") {
-      return {
-        success: false,
-        message: "Běh v tento čas již existuje",
-      };
+      return { success: false, message: "Běh v tento čas již existuje" };
     }
 
-    return {
-      success: false,
-      message: `Chyba při vytváření běhu: ${error.message}`,
-    };
+    return { success: false, message: `Chyba při vytváření běhu: ${error.message}` };
   }
 
-  return {
-    success: true,
-    message: "Běh vytvořen",
-  };
+  revalidatePath(`/activities/${activityId}`); // harmless even if route uses slug; page revalidate can be broader
+  revalidatePath("/activities");
+  return { success: true, message: "Běh vytvořen" };
 }
 
 /**
  * Create a check-in (pending) for an occurrence
+ * RPC returns a row from activity_checkins (id, status, ...)
  */
 export async function createCheckin(occurrenceId: string): Promise<ActionResult> {
   const supabase = await getSupabaseServerClient();
@@ -185,45 +177,31 @@ export async function createCheckin(occurrenceId: string): Promise<ActionResult>
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return {
-      success: false,
-      message: "Musíš být přihlášený",
-    };
-  }
+  if (!user) return { success: false, message: "Musíš být přihlášený" };
 
-  // Call RPC
-  const { data, error } = await supabase
-    .rpc("create_activity_checkin", {
-      p_occurrence_id: occurrenceId,
-    })
-    .single();
+  const { data, error } = await supabase.rpc("create_activity_checkin", {
+    p_occurrence_id: occurrenceId,
+  });
 
   if (error) {
     console.error("Create check-in error:", error);
-    return {
-      success: false,
-      message: `Chyba při check-inu: ${error.message}`,
-    };
+
+    // Unique violation (already checked-in) often comes as 23505 only if RPC doesn't upsert.
+    if (error.code === "23505") {
+      return { success: true, message: "Již jsi checked-in" };
+    }
+
+    return { success: false, message: `Chyba při check-inu: ${error.message}` };
   }
 
-  const result = data as { checkin_id: string; status: string; message: string };
-
-  if (result.status === "error") {
-    return {
-      success: false,
-      message: result.message,
-    };
-  }
-
-  return {
-    success: true,
-    message: result.status === "existing" ? "Již jsi checked-in" : "Check-in vytvořen",
-  };
+  // data is the inserted/returned row
+  revalidatePath("/activities");
+  return { success: true, message: "Check-in vytvořen (čeká na potvrzení)" };
 }
 
 /**
  * Confirm a pending check-in (organizer only)
+ * RPC returns a row from activity_checkins (status, xp_awarded_at, ...)
  */
 export async function confirmCheckin(checkinId: string): Promise<ActionResult> {
   const supabase = await getSupabaseServerClient();
@@ -231,39 +209,19 @@ export async function confirmCheckin(checkinId: string): Promise<ActionResult> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return {
-      success: false,
-      message: "Musíš být přihlášený",
-    };
-  }
+  if (!user) return { success: false, message: "Musíš být přihlášený" };
 
-  // Call RPC
-  const { data, error } = await supabase
-    .rpc("confirm_activity_checkin", {
-      p_checkin_id: checkinId,
-    })
-    .single();
+  const { data, error } = await supabase.rpc("confirm_activity_checkin", {
+    p_checkin_id: checkinId,
+  });
 
   if (error) {
     console.error("Confirm check-in error:", error);
-    return {
-      success: false,
-      message: `Chyba při potvrzení: ${error.message}`,
-    };
+    return { success: false, message: `Chyba při potvrzení: ${error.message}` };
   }
 
-  const result = data as { success: boolean; message: string; xp_awarded: number };
-
-  if (!result.success) {
-    return {
-      success: false,
-      message: result.message,
-    };
-  }
-
-  return {
-    success: true,
-    message: `Check-in potvrzen (+${result.xp_awarded} XP)`,
-  };
+  // If confirm RPC succeeded, the checkin is confirmed. XP may have been awarded or pending retry.
+  // We can infer from xp_awarded_at if needed by the UI.
+  revalidatePath("/activities");
+  return { success: true, message: "Check-in potvrzen (XP se připsalo po potvrzení)" };
 }
