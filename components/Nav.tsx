@@ -7,6 +7,7 @@ export default function Nav() {
   const navItems = [
     { href: "/", label: "Domů" },
     { href: "/places", label: "Místa" },
+    { href: "/activities", label: "Aktivity" },
     { href: "/leaderboard", label: "Žebříček" },
     { href: "/create-place", label: "Přidat místo" },
   ];
