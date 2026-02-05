@@ -55,22 +55,13 @@ export async function POST(req: Request) {
     .single();
 
   if (visitError) {
-    console.error("record_visit_with_note error:", {
-      code: visitError.code,
-      message: visitError.message,
-      details: visitError.details,
-      hint: visitError.hint,
-    });
+    console.error("record_visit_with_note error:", visitError);
 
     return NextResponse.json(
       {
         ok: false,
-        error: "Failed to record visit",
-        rpc: {
-          code: visitError.code,
-          message: visitError.message,
-          details: visitError.details,
-        },
+        error: visitError.message || "Failed to record visit",
+        code: visitError.code,
       },
       { status: 500 }
     );
