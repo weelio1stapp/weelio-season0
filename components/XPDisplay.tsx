@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserClient";
 import { useAuth } from "./AuthProvider";
 import { calculateLevelProgress } from "@/lib/xp";
@@ -48,7 +49,10 @@ export default function XPDisplay() {
   const { currentLevel, progressPercent } = calculateLevelProgress(xp);
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--accent-primary)] bg-opacity-10 border border-[var(--accent-primary)] border-opacity-20">
+    <Link
+      href="/me/xp"
+      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--accent-primary)] bg-opacity-10 border border-[var(--accent-primary)] border-opacity-20 hover:bg-opacity-20 transition-colors"
+    >
       <Zap className="w-4 h-4 text-[var(--accent-primary)]" />
       <div className="flex flex-col">
         <div className="flex items-center gap-2">
@@ -67,6 +71,6 @@ export default function XPDisplay() {
           />
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

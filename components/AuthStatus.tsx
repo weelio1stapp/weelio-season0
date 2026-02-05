@@ -72,6 +72,12 @@ export default function AuthStatus() {
         >
           Deník
         </Link>
+        <Link
+          href="/me/xp"
+          className="text-sm hover:text-[var(--accent-primary)] transition-colors"
+        >
+          XP
+        </Link>
         <Button onClick={handleSignOut} variant="outline" className="text-sm py-1 px-3">
           Odhlásit
         </Button>
