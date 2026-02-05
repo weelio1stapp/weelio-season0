@@ -111,8 +111,21 @@ export default async function ActivityDetailPage({ params }: Props) {
     }
   }
 
+  // Debug object
+  const debug = {
+    slug,
+    activityId: activity.id,
+    userId: user?.id ?? null,
+    isOrganizer,
+  };
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
+      {/* Debug Output */}
+      <pre className="mb-4 rounded-lg border p-3 text-xs overflow-auto">
+        {JSON.stringify(debug, null, 2)}
+      </pre>
+
       {/* Activity Header */}
       <Card className="mb-6">
         <CardHeader>
