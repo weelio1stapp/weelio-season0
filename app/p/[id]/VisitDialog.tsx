@@ -17,11 +17,20 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { FileText, Camera, Mic } from "lucide-react";
 
+type VisitResult = {
+  xp_delta: number;
+  visit_id: string;
+  journal_entry_id: string | null;
+  is_duplicate: boolean;
+};
+
 type VisitDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   placeId: string;
   placeName: string;
+  onVisitRecorded?: (result: VisitResult) => void;
+  defaultTab?: string;
 };
 
 export default function VisitDialog({
@@ -29,10 +38,12 @@ export default function VisitDialog({
   onOpenChange,
   placeId,
   placeName,
+  onVisitRecorded,
+  defaultTab = "note",
 }: VisitDialogProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState("note");
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [noteText, setNoteText] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,9 +74,18 @@ export default function VisitDialog({
         toast.info("Už jsi tu dnes byl", {
           description: "Můžeš navštívit znovu zítra",
         });
+
+        // Notify parent component
+        onVisitRecorded?.({
+          xp_delta: 0,
+          visit_id: data.visit_id || "",
+          journal_entry_id: null,
+          is_duplicate: true,
+        });
+
         onOpenChange(false);
         setNoteText("");
-        setActiveTab("note");
+        setActiveTab(defaultTab);
         return;
       }
 
@@ -79,12 +99,20 @@ export default function VisitDialog({
           : "Tvá stopa byla zanechána",
       });
 
+      // Notify parent component
+      onVisitRecorded?.({
+        xp_delta: xpDelta,
+        visit_id: data.visit_id || "",
+        journal_entry_id: data.journal_entry_id || null,
+        is_duplicate: false,
+      });
+
       // Close dialog
       onOpenChange(false);
 
       // Reset form
       setNoteText("");
-      setActiveTab("note");
+      setActiveTab(defaultTab);
 
       // Refresh page data
       router.refresh();
