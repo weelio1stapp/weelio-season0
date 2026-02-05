@@ -68,47 +68,47 @@ export default async function Home() {
 
       {/* Features */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="border-2">
+          <CardContent className="pt-6 pb-6">
             <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Compass className="w-6 h-6 text-primary" />
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                <Compass className="w-7 h-7 text-primary" />
               </div>
             </div>
-            <h3 className="text-xl font-semibold mb-2 text-center">
+            <h3 className="text-xl font-semibold mb-3 text-center">
               Objevuj
             </h3>
-            <p className="text-muted-foreground text-center">
+            <p className="text-muted-foreground text-center text-sm leading-relaxed">
               Najdi skrytá místa, která ještě neznáš. Od skal po jezera, od jeskyní po vyhlídky.
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="border-2">
+          <CardContent className="pt-6 pb-6">
             <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <MapPin className="w-6 h-6 text-primary" />
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                <MapPin className="w-7 h-7 text-primary" />
               </div>
             </div>
-            <h3 className="text-xl font-semibold mb-2 text-center">
+            <h3 className="text-xl font-semibold mb-3 text-center">
               Sdílej
             </h3>
-            <p className="text-muted-foreground text-center">
+            <p className="text-muted-foreground text-center text-sm leading-relaxed">
               Podeľ se o své zážitky, fotky a tipy s ostatními dobrodruhy.
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="border-2">
+          <CardContent className="pt-6 pb-6">
             <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-primary" />
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                <Trophy className="w-7 h-7 text-primary" />
               </div>
             </div>
-            <h3 className="text-xl font-semibold mb-2 text-center">
+            <h3 className="text-xl font-semibold mb-3 text-center">
               Zanech stopu
             </h3>
-            <p className="text-muted-foreground text-center">
+            <p className="text-muted-foreground text-center text-sm leading-relaxed">
               Sbírej XP, získávaj odznaky a staň se legendárním průzkumníkem.
             </p>
           </CardContent>
@@ -116,13 +116,15 @@ export default async function Home() {
       </div>
 
       {/* CTA */}
-      <Card className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
-        <CardContent className="text-center py-12">
-          <h2 className="text-3xl font-bold mb-4">Připraven na dobrodružství?</h2>
-          <p className="mb-6 opacity-90 max-w-xl mx-auto">
-            Začni objevovat úžasná místa v České republice ještě dnes
+      <Card className="border-2 bg-accent/50">
+        <CardContent className="text-center py-16 px-6">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Připraven vyrazit?
+          </h2>
+          <p className="text-muted-foreground mb-8 max-w-xl mx-auto text-lg">
+            Začni objevovat Česko jinak.
           </p>
-          <Button asChild variant="secondary" size="lg">
+          <Button asChild size="lg">
             <Link href="/places">Začít objevovat</Link>
           </Button>
         </CardContent>
