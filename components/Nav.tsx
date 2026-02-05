@@ -1,7 +1,6 @@
 import Link from "next/link";
 import AuthStatus from "./AuthStatus";
 import ThemeToggle from "./theme/ThemeToggle";
-import XPDisplay from "./XPDisplay";
 
 export default function Nav() {
   const navItems = [
@@ -26,7 +25,6 @@ export default function Nav() {
         ))}
       </div>
       <div className="flex items-center gap-3">
-        <XPDisplay />
         <ThemeToggle />
         <AuthStatus />
       </div>
