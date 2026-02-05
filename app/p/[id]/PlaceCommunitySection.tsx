@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, BookOpen } from "lucide-react";
 import PlaceJournalSection from "@/components/place/PlaceJournalSection";
+import PlaceGallery from "@/components/PlaceGallery";
 
 type PlaceCommunitySectionProps = {
   placeId: string;
@@ -18,6 +19,9 @@ type PlaceCommunitySectionProps = {
     { display_name: string | null; avatar_url: string | null }
   >;
   isAuthenticated: boolean;
+  currentUserId: string | null;
+  placeAuthorId: string;
+  currentCoverPath: string | null;
 };
 
 export default function PlaceCommunitySection({
@@ -25,6 +29,9 @@ export default function PlaceCommunitySection({
   journalEntries,
   profiles,
   isAuthenticated,
+  currentUserId,
+  placeAuthorId,
+  currentCoverPath,
 }: PlaceCommunitySectionProps) {
   return (
     <Card className="border-2">
@@ -54,12 +61,12 @@ export default function PlaceCommunitySection({
           </TabsContent>
 
           <TabsContent value="photos" className="mt-4">
-            <div className="text-center py-12">
-              <Camera className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-              <p className="text-sm text-muted-foreground">
-                Galerie fotek bude brzy k dispozici
-              </p>
-            </div>
+            <PlaceGallery
+              placeId={placeId}
+              currentUserId={currentUserId}
+              placeAuthorId={placeAuthorId}
+              currentCoverPath={currentCoverPath}
+            />
           </TabsContent>
         </Tabs>
       </CardContent>

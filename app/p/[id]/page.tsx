@@ -223,6 +223,9 @@ export default async function PlaceDetailPage({
           journalEntries={journalEntriesForClient}
           profiles={profilesRecord}
           isAuthenticated={!!currentUserId}
+          currentUserId={currentUserId}
+          placeAuthorId={place.author_user_id}
+          currentCoverPath={place.cover_storage_path}
         />
       </div>
     </main>

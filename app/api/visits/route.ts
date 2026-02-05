@@ -6,6 +6,7 @@ type Body = {
   source?: string;
   note?: string;
   mode?: string; // 'note' | 'photo' | 'audio'
+  photo_path?: string;
 };
 
 export async function POST(req: Request) {
@@ -38,10 +39,19 @@ export async function POST(req: Request) {
   const source = body.source ?? "manual";
   const note = body.note?.trim() || null;
   const mode = body.mode || "button";
+  const photoPath = body.photo_path?.trim() || null;
 
   if (!placeId) {
     return NextResponse.json(
       { ok: false, error: "Missing placeId" },
+      { status: 400 }
+    );
+  }
+
+  // Validate photo mode
+  if (mode === "photo" && !photoPath) {
+    return NextResponse.json(
+      { ok: false, error: "Missing photo_path for photo mode" },
       { status: 400 }
     );
   }
@@ -73,7 +83,7 @@ export async function POST(req: Request) {
     is_duplicate: boolean;
   };
 
-  // If duplicate visit, don't award XP again
+  // If duplicate visit, don't award XP again or create photo
   if (visitResult.is_duplicate) {
     return NextResponse.json({
       ok: true,
@@ -85,6 +95,29 @@ export async function POST(req: Request) {
       is_duplicate: true,
       message: "Už jsi tu dnes byl",
     });
+  }
+
+  /* 3B️⃣ If mode is photo, insert into place_photos */
+  let photoId: string | null = null;
+  if (mode === "photo" && photoPath) {
+    const { data: photoData, error: photoError } = await supabase
+      .from("place_photos")
+      .insert({
+        place_id: placeId,
+        user_id: userId,
+        visit_id: visitResult.visit_id,
+        storage_path: photoPath,
+      })
+      .select("id")
+      .single();
+
+    if (photoError) {
+      console.error("Insert place_photos error:", photoError);
+      // Don't fail the whole request, just log
+      // The visit was still recorded successfully
+    } else if (photoData) {
+      photoId = photoData.id;
+    }
   }
 
   /* 4️⃣ Award XP using visit_id for idempotence */
@@ -135,5 +168,7 @@ export async function POST(req: Request) {
     best_streak_weeks: 0, // Legacy field for backward compatibility
     visit_id: visitResult.visit_id,
     journal_entry_id: visitResult.journal_entry_id,
+    photo_id: photoId,
+    photo_path: photoPath,
   });
 }

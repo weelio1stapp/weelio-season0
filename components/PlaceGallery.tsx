@@ -11,6 +11,9 @@ type PlaceMedia = {
   storage_path: string;
   public_url: string | null;
   created_at: string;
+  source?: "place_media" | "place_photos";
+  user_id?: string;
+  visit_id?: string;
 };
 
 type Props = {
@@ -83,18 +86,49 @@ export default function PlaceGallery({
   async function fetchPhotos() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+
+      // Fetch from place_media (author uploads)
+      const { data: placeMediaData, error: mediaError } = await supabase
         .from("place_media")
         .select("*")
         .eq("place_id", placeId)
         .eq("media_type", "photo")
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
+      if (mediaError) throw mediaError;
+
+      // Fetch from place_photos (visit uploads)
+      const { data: placePhotosData, error: photosError } = await supabase
+        .from("place_photos")
+        .select("*")
+        .eq("place_id", placeId)
+        .order("created_at", { ascending: false });
+
+      if (photosError) throw photosError;
+
+      // Combine both sources
+      const allPhotos = [
+        ...(placeMediaData || []).map((p) => ({
+          ...p,
+          source: "place_media" as const,
+        })),
+        ...(placePhotosData || []).map((p) => ({
+          ...p,
+          source: "place_photos" as const,
+          author_user_id: p.user_id,
+          media_type: "photo",
+        })),
+      ];
+
+      // Sort by created_at descending (newest first)
+      allPhotos.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
 
       // Get public URLs for each photo
       const photosWithUrls = await Promise.all(
-        (data || []).map(async (photo) => {
+        allPhotos.map(async (photo) => {
           const { data: urlData } = supabase.storage
             .from("place-media")
             .getPublicUrl(photo.storage_path);
@@ -252,9 +286,11 @@ export default function PlaceGallery({
         // Continue even if storage delete fails
       }
 
-      // Delete from database
+      // Delete from database (from correct table)
+      const tableName =
+        photo.source === "place_photos" ? "place_photos" : "place_media";
       const { error: dbError } = await supabase
-        .from("place_media")
+        .from(tableName)
         .delete()
         .eq("id", photo.id);
 

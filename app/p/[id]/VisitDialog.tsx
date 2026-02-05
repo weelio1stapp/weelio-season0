@@ -15,7 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { FileText, Camera, Mic } from "lucide-react";
+import { FileText, Camera, Mic, X } from "lucide-react";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserClient";
 
 type VisitResult = {
   xp_delta: number;
@@ -45,20 +46,92 @@ export default function VisitDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [noteText, setNoteText] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Nahraj pouze obrázky (JPG, PNG, atd.)");
+      return;
+    }
+
+    // Validate file size (max 8MB)
+    if (file.size > 8 * 1024 * 1024) {
+      setUploadError("Obrázek je příliš velký (max 8 MB)");
+      return;
+    }
+
+    setUploadError(null);
+    setPhotoFile(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearPhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setUploadError(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setUploadError(null);
 
     try {
-      // Call visit API with note
+      let photoPath: string | null = null;
+
+      // Handle photo upload if in photo mode
+      if (activeTab === "photo") {
+        if (!photoFile) {
+          setUploadError("Vyber fotku");
+          setIsSubmitting(false);
+          return;
+        }
+
+        const supabase = getSupabaseBrowserClient();
+
+        // Generate unique filename
+        const fileExt = photoFile.name.split(".").pop();
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const storagePath = `places/${placeId}/visits/${user?.id}/${today}/${fileName}`;
+
+        // Upload to storage
+        const { error: uploadError } = await supabase.storage
+          .from("place-media")
+          .upload(storagePath, photoFile);
+
+        if (uploadError) {
+          console.error("Photo upload error:", uploadError);
+          throw new Error("Nepodařilo se nahrát fotku");
+        }
+
+        photoPath = storagePath;
+      }
+
+      // Call visit API
       const response = await fetch("/api/visits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           placeId,
           source: "manual",
-          note: noteText.trim() || null,
+          note: activeTab === "note" ? noteText.trim() || null : null,
+          photo_path: photoPath,
           mode: activeTab,
         }),
       });
@@ -75,6 +148,12 @@ export default function VisitDialog({
           description: "Můžeš navštívit znovu zítra",
         });
 
+        // If we uploaded a photo but visit was duplicate, try to clean up
+        if (photoPath) {
+          const supabase = getSupabaseBrowserClient();
+          await supabase.storage.from("place-media").remove([photoPath]);
+        }
+
         // Notify parent component
         onVisitRecorded?.({
           xp_delta: 0,
@@ -85,18 +164,25 @@ export default function VisitDialog({
 
         onOpenChange(false);
         setNoteText("");
+        clearPhoto();
         setActiveTab(defaultTab);
         return;
       }
 
       // Success - show XP toast
       const xpDelta = data.xp_delta || 0;
-      const hasNote = noteText.trim().length > 0;
+      const hasNote = activeTab === "note" && noteText.trim().length > 0;
+      const hasPhoto = activeTab === "photo" && photoPath;
+
+      let description = "Tvá stopa byla zanechána";
+      if (hasNote) {
+        description = "Tvá stopa a poznámka byly zanechány";
+      } else if (hasPhoto) {
+        description = "Tvá stopa a fotka byly zanechány";
+      }
 
       toast.success(`Návštěva potvrzena! +${xpDelta} XP`, {
-        description: hasNote
-          ? "Tvá stopa a poznámka byly zanechány"
-          : "Tvá stopa byla zanechána",
+        description,
       });
 
       // Notify parent component
@@ -112,6 +198,7 @@ export default function VisitDialog({
 
       // Reset form
       setNoteText("");
+      clearPhoto();
       setActiveTab(defaultTab);
 
       // Refresh page data
@@ -141,7 +228,7 @@ export default function VisitDialog({
                 <FileText className="w-4 h-4" />
                 <span className="hidden sm:inline">Poznámka</span>
               </TabsTrigger>
-              <TabsTrigger value="photo" className="gap-2" disabled>
+              <TabsTrigger value="photo" className="gap-2">
                 <Camera className="w-4 h-4" />
                 <span className="hidden sm:inline">Fotka</span>
               </TabsTrigger>
@@ -171,14 +258,36 @@ export default function VisitDialog({
             <TabsContent value="photo" className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label htmlFor="photo">Nahraj fotku</Label>
-                <Input
-                  id="photo"
-                  type="file"
-                  accept="image/*"
-                  disabled
-                />
+                {photoPreview ? (
+                  <div className="relative">
+                    <img
+                      src={photoPreview}
+                      alt="Náhled"
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={clearPhoto}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Input
+                    id="photo"
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoSelect}
+                  />
+                )}
+                {uploadError && (
+                  <p className="text-xs text-destructive">{uploadError}</p>
+                )}
                 <p className="text-xs text-muted-foreground">
-                  Funkce fotky bude brzy k dispozici
+                  Max. velikost: 8 MB • Formáty: JPG, PNG
                 </p>
               </div>
             </TabsContent>
