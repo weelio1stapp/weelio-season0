@@ -1,55 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fetchPlaceById } from "@/lib/db/places";
-import { PLACE_TYPE_LABELS } from "@/lib/placesFilters";
 import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
-import { hasVisitedToday, getPlaceStats } from "@/lib/db/visits";
-import PlaceGallery from "@/components/PlaceGallery";
-import PlaceAuthorActions from "@/components/PlaceAuthorActions";
-import VisitedButton from "@/components/VisitedButton";
-import PlaceJournalSection from "@/components/place/PlaceJournalSection";
-import PlaceRiddles from "@/components/place/PlaceRiddles";
-import PlaceDailyProgressStrip from "@/components/place/PlaceDailyProgressStrip";
+import { hasVisitedToday } from "@/lib/db/visits";
 import { getPublicJournalEntriesForPlace } from "@/lib/db/journal";
-import { getProfilesByIds, formatUserDisplay } from "@/lib/db/profiles";
-import {
-  getPublicRiddlesForPlace,
-  getMySolvedRiddles,
-} from "@/lib/db/riddles";
-
-/**
- * Format coordinate for Mapy.com route planner
- * @example formatMapyCoord(50.418701, 12.980643) -> "50.418701N, 12.980643E"
- * @example formatMapyCoord(-33.8688, 151.2093) -> "33.8688S, 151.2093E"
- */
-function formatMapyCoord(lat: number, lng: number): string {
-  const latAbs = Math.abs(lat);
-  const lngAbs = Math.abs(lng);
-  const latDir = lat >= 0 ? "N" : "S";
-  const lngDir = lng >= 0 ? "E" : "W";
-  return `${latAbs}${latDir}, ${lngAbs}${lngDir}`;
-}
-
-/**
- * Build Mapy.com route planner URL
- * Uses rs=coor (coordinate source) and rt (route waypoints)
- */
-function getMapyRouteUrl(
-  startLat: number,
-  startLng: number,
-  endLat: number,
-  endLng: number
-): string {
-  const startCoord = formatMapyCoord(startLat, startLng);
-  const endCoord = formatMapyCoord(endLat, endLng);
-
-  // URL encode the coordinate strings
-  const rtStart = encodeURIComponent(startCoord);
-  const rtEnd = encodeURIComponent(endCoord);
-
-  // Add x,y,z for better UX (center map on start point)
-  return `https://mapy.com/cs/?planovani-trasy=&rs=coor&rs=coor&rt=${rtStart}&rt=${rtEnd}&x=${startLng}&y=${startLat}&z=14`;
-}
+import { getProfilesByIds } from "@/lib/db/profiles";
+import { getPublicRiddlesForPlace } from "@/lib/db/riddles";
+import PlaceAuthorActions from "@/components/PlaceAuthorActions";
+import PlaceRiddles from "@/components/place/PlaceRiddles";
+import PlaceHero from "./PlaceHero";
+import PlacePlanSection from "./PlacePlanSection";
+import PlaceOnSiteHint from "./PlaceOnSiteHint";
+import PlaceOnSiteActions from "./PlaceOnSiteActions";
+import PlaceCommunitySection from "./PlaceCommunitySection";
+import { Separator } from "@/components/ui/separator";
 
 export default async function PlaceDetailPage({
   params,
@@ -70,10 +34,7 @@ export default async function PlaceDetailPage({
   const isAuthor = currentUserId === place.author_user_id;
 
   // Check if user has visited today
-  const alreadyVisited = await hasVisitedToday(place.id);
-
-  // Load place statistics
-  const stats = await getPlaceStats(place.id);
+  const alreadyVisited = currentUserId ? await hasVisitedToday(place.id) : false;
 
   // Load journal entries and riddles
   const [journalEntries, riddles] = await Promise.all([
@@ -83,10 +44,14 @@ export default async function PlaceDetailPage({
 
   // Batch load profiles for journal entries
   const userIds = journalEntries.map((entry) => entry.user_id);
-  const profiles = userIds.length > 0 ? await getProfilesByIds(userIds) : new Map();
+  const profiles =
+    userIds.length > 0 ? await getProfilesByIds(userIds) : new Map();
 
-  // Prepare data for PlaceJournalSection (convert Map to Record)
-  const profilesRecord: Record<string, { display_name: string | null; avatar_url: string | null }> = {};
+  // Prepare data for PlaceJournalSection
+  const profilesRecord: Record<
+    string,
+    { display_name: string | null; avatar_url: string | null }
+  > = {};
   profiles.forEach((profile, userId) => {
     profilesRecord[userId] = {
       display_name: profile.display_name,
@@ -98,10 +63,13 @@ export default async function PlaceDetailPage({
     id: e.id,
     user_id: e.user_id,
     content: e.content,
-    created_at: typeof e.created_at === "string" ? e.created_at : new Date(e.created_at).toISOString(),
+    created_at:
+      typeof e.created_at === "string"
+        ? e.created_at
+        : new Date(e.created_at).toISOString(),
   }));
 
-  // Load attempts and solved status for current user (windowed by cooldown)
+  // Load attempts and solved status for current user
   const riddleIds = riddles.map((r) => r.id);
   let attemptsMap = new Map<string, number>();
   let solvedMap = new Map<string, Date>();
@@ -120,9 +88,13 @@ export default async function PlaceDetailPage({
 
       riddles.forEach((riddle) => {
         const cooldownHours = riddle.cooldown_hours ?? 24;
-        const windowStart = new Date(now.getTime() - cooldownHours * 60 * 60 * 1000);
+        const windowStart = new Date(
+          now.getTime() - cooldownHours * 60 * 60 * 1000
+        );
 
-        const riddleAttempts = allAttempts.filter((a) => a.riddle_id === riddle.id);
+        const riddleAttempts = allAttempts.filter(
+          (a) => a.riddle_id === riddle.id
+        );
 
         // Count attempts within window
         const windowedAttempts = riddleAttempts.filter((a) => {
@@ -145,7 +117,7 @@ export default async function PlaceDetailPage({
     }
   }
 
-  // Enrich riddles with attempts_left, solved, can_delete, next_available_at
+  // Enrich riddles with attempts_left, solved, can_delete
   const enrichedRiddles = riddles.map((r) => {
     const maxAttempts = r.max_attempts ?? 3;
     const cooldownHours = r.cooldown_hours ?? 24;
@@ -155,10 +127,11 @@ export default async function PlaceDetailPage({
     const solved = !!lastCorrectDate;
     const canDelete = currentUserId ? r.created_by === currentUserId : false;
 
-    // Compute next_available_at if solved
     let nextAvailableAt: string | null = null;
     if (lastCorrectDate) {
-      const nextAvailable = new Date(lastCorrectDate.getTime() + cooldownHours * 60 * 60 * 1000);
+      const nextAvailable = new Date(
+        lastCorrectDate.getTime() + cooldownHours * 60 * 60 * 1000
+      );
       nextAvailableAt = nextAvailable.toISOString();
     }
 
@@ -172,9 +145,13 @@ export default async function PlaceDetailPage({
   });
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8 pb-24 md:pb-8">
-      <div className="flex items-center justify-between gap-4 mb-4">
-        <Link href="/places" className="text-sm opacity-80 hover:opacity-100">
+    <main className="mx-auto max-w-5xl px-4 py-8">
+      {/* Back Link & Author Actions */}
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <Link
+          href="/places"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
           ← Zpět na místa
         </Link>
         <PlaceAuthorActions
@@ -184,174 +161,68 @@ export default async function PlaceDetailPage({
         />
       </div>
 
-      {/* Hero cover image */}
-      {place.cover_public_url && (
-        <div className="mb-6 -mx-4 md:mx-0">
-          <img
-            src={place.cover_public_url}
-            alt={place.name}
-            className="w-full aspect-video md:aspect-[21/9] object-cover md:rounded-2xl"
+      {/* NEW STRUCTURE - Planning-First Layout */}
+
+      {/* A) PlaceHero - Inspiration, no actions */}
+      <div className="mb-6">
+        <PlaceHero
+          name={place.name}
+          area={place.area}
+          type={place.type}
+          time_min={place.time_min}
+          difficulty={place.difficulty}
+          why={place.why}
+          cover_public_url={place.cover_public_url}
+        />
+      </div>
+
+      {/* B) PlacePlanSection - PRIMARY CTA: Navigation */}
+      <div className="mb-6">
+        <PlacePlanSection
+          start_lat={place.start_lat}
+          start_lng={place.start_lng}
+          end_lat={place.end_lat}
+          end_lng={place.end_lng}
+        />
+      </div>
+
+      {/* C) PlaceOnSiteHint - Mental transition */}
+      <div className="mb-6">
+        <PlaceOnSiteHint />
+      </div>
+
+      {/* D) PlaceOnSiteActions - SECONDARY: Visit button */}
+      <div className="mb-8">
+        <PlaceOnSiteActions
+          placeId={place.id}
+          placeName={place.name}
+          alreadyVisited={alreadyVisited}
+          isAuthenticated={!!currentUserId}
+        />
+      </div>
+
+      <Separator className="my-8" />
+
+      {/* Riddles Section */}
+      {enrichedRiddles.length > 0 && (
+        <div className="mb-8">
+          <PlaceRiddles
+            placeId={place.id}
+            riddles={enrichedRiddles}
+            solvedRiddleIds={solvedRiddleIdsArray}
+            isAuthenticated={!!currentUserId}
+            isPlaceAuthor={isAuthor}
           />
         </div>
       )}
 
-      <h1 className="text-3xl font-bold">{place.name}</h1>
-      <p className="mt-2 text-sm opacity-80">{place.area}</p>
-
-      <div className="mt-4 flex flex-wrap gap-2 text-xs">
-        <span className="rounded-full border px-2 py-1">
-          {PLACE_TYPE_LABELS[place.type]}
-        </span>
-        <span className="rounded-full border px-2 py-1">
-          ⏱ {place.time_min} min
-        </span>
-        <span className="rounded-full border px-2 py-1">
-          ⚡ {place.difficulty}/5
-        </span>
-      </div>
-
-      <div className="mt-6 rounded-2xl border p-6">
-        <h3 className="text-base font-semibold">Proč jít</h3>
-        <p className="mt-2 text-sm opacity-80">{place.why}</p>
-      </div>
-
-      {/* Daily Progress Strip */}
-      {currentUserId && (
-        <PlaceDailyProgressStrip
+      {/* E) PlaceCommunitySection - Tabs: Journal & Photos */}
+      <div className="mb-8">
+        <PlaceCommunitySection
           placeId={place.id}
-          isAuthenticated={true}
-          alreadyVisited={alreadyVisited}
-        />
-      )}
-
-      {/* Place Journal */}
-      <PlaceJournalSection
-        placeId={place.id}
-        journalEntries={journalEntriesForClient}
-        profiles={profilesRecord}
-        isAuthenticated={!!currentUserId}
-      />
-
-      {/* Riddles */}
-      <PlaceRiddles
-        placeId={place.id}
-        riddles={enrichedRiddles}
-        solvedRiddleIds={solvedRiddleIdsArray}
-        isAuthenticated={!!currentUserId}
-        isPlaceAuthor={isAuthor}
-      />
-
-      {/* Statistics */}
-      <div className="mt-6 rounded-2xl border p-6">
-        <h3 className="text-base font-semibold mb-4">Statistiky</h3>
-
-        {stats.total_visits > 0 ? (
-          <div className="space-y-4">
-            {/* Metrics */}
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="rounded-lg border p-3">
-                <div className="text-xs opacity-60 mb-1">Celkem návštěv</div>
-                <div className="text-2xl font-bold">{stats.total_visits}</div>
-              </div>
-              <div className="rounded-lg border p-3">
-                <div className="text-xs opacity-60 mb-1">Posledních 30 dní</div>
-                <div className="text-2xl font-bold">{stats.visits_30d}</div>
-              </div>
-            </div>
-
-            {/* Top Walkers */}
-            {stats.top_walkers_30d.length > 0 && (
-              <div>
-                <div className="text-xs opacity-60 mb-2">
-                  Top chodci (30 dní)
-                </div>
-                <div className="space-y-2">
-                  {stats.top_walkers_30d.map((walker, index) => (
-                    <div
-                      key={walker.user_id}
-                      className="flex items-center gap-2 text-sm"
-                    >
-                      <span className="font-semibold opacity-60">
-                        #{index + 1}
-                      </span>
-                      <span className="opacity-80">
-                        User {walker.user_id.slice(0, 8)}...
-                        {walker.user_id.slice(-4)}
-                      </span>
-                      <span className="ml-auto opacity-60">
-                        {walker.visit_count} {walker.visit_count === 1 ? "návštěva" : walker.visit_count < 5 ? "návštěvy" : "návštěv"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <p className="text-sm opacity-60">
-            Zatím zde nikdo nebyl. Buď první!
-          </p>
-        )}
-      </div>
-
-      {/* Trasa / Mapa - only show if coordinates exist */}
-      {place.start_lat &&
-        place.start_lng &&
-        place.end_lat &&
-        place.end_lng && (
-          <div className="mt-6 rounded-2xl border p-6">
-            <h3 className="text-base font-semibold">Trasa</h3>
-
-            <div className="mt-4 space-y-2 text-sm">
-              <p>
-                <span className="font-medium">Start:</span>{" "}
-                {place.start_lat.toFixed(5)}, {place.start_lng.toFixed(5)}
-              </p>
-              <p>
-                <span className="font-medium">Cíl:</span>{" "}
-                {place.end_lat.toFixed(5)}, {place.end_lng.toFixed(5)}
-              </p>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-3">
-              <a
-                href={getMapyRouteUrl(
-                  place.start_lat,
-                  place.start_lng,
-                  place.end_lat,
-                  place.end_lng
-                )}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border-2 border-gray-200 px-4 py-2 text-sm font-medium hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)] hover:text-white transition-colors"
-              >
-                🗺 Otevřít v Mapy.com
-              </a>
-              <a
-                href={`https://www.google.com/maps/dir/${place.start_lat},${place.start_lng}/${place.end_lat},${place.end_lng}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border-2 border-gray-200 px-4 py-2 text-sm font-medium hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)] hover:text-white transition-colors"
-              >
-                🌍 Otevřít v Google Maps
-              </a>
-            </div>
-          </div>
-        )}
-
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border p-6">
-          <h3 className="text-base font-semibold">Audio průvodce</h3>
-          <p className="mt-2 text-sm opacity-80">Zatím vypnuto (MVP).</p>
-          <p className="mt-1 text-xs opacity-60">
-            Backend připraven v place_media.
-          </p>
-        </div>
-        <PlaceGallery
-          placeId={place.id}
-          currentUserId={currentUserId}
-          placeAuthorId={place.author_user_id}
-          currentCoverPath={place.cover_storage_path}
+          journalEntries={journalEntriesForClient}
+          profiles={profilesRecord}
+          isAuthenticated={!!currentUserId}
         />
       </div>
     </main>
