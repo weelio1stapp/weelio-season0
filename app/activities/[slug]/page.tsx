@@ -19,9 +19,6 @@ type PendingCheckinRow = {
   user_id: string;
   status: string;
   created_at: string;
-  // comes from join alias "user"
-  user?: { display_name?: string | null } | null;
-  // convenience
   display_name?: string;
 };
 
@@ -90,23 +87,12 @@ export default async function ActivityDetailPage({ params }: Props) {
     }
   }
 
-  // Fetch pending check-ins for organizer (with display_name via user_public_profiles)
+  // Fetch pending check-ins for organizer
   let pendingCheckins: PendingCheckinRow[] = [];
   if (isOrganizer && occurrenceIds.length > 0) {
     const { data: pending, error: pendingErr } = await supabase
       .from("activity_checkins")
-      .select(
-        `
-        id,
-        occurrence_id,
-        user_id,
-        status,
-        created_at,
-        user:user_public_profiles(
-          display_name
-        )
-      `
-      )
+      .select("id, occurrence_id, user_id, status, created_at")
       .eq("status", "pending")
       .in("occurrence_id", occurrenceIds)
       .order("created_at", { ascending: false });
@@ -116,7 +102,7 @@ export default async function ActivityDetailPage({ params }: Props) {
     } else {
       pendingCheckins = ((pending ?? []) as PendingCheckinRow[]).map((row) => ({
         ...row,
-        display_name: row.user?.display_name ?? `User ${row.user_id.slice(0, 8)}`,
+        display_name: `User ${row.user_id.slice(0, 8)}`,
       }));
     }
   }
