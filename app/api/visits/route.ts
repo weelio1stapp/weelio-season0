@@ -87,6 +87,10 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       xp_delta: 0,
+      xp_total: 0,
+      level: 1,
+      streak_weeks: 0,
+      best_streak_weeks: 0,
       is_duplicate: true,
       message: "Už jsi tu dnes byl",
     });
@@ -136,6 +140,8 @@ export async function POST(req: Request) {
     xp_delta: xpAwarded,
     xp_total: totalXp,
     level: level,
+    streak_weeks: 0, // Legacy field for backward compatibility
+    best_streak_weeks: 0, // Legacy field for backward compatibility
     visit_id: visitResult.visit_id,
     journal_entry_id: visitResult.journal_entry_id,
   });
