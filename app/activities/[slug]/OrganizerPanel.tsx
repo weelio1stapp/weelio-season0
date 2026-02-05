@@ -24,11 +24,12 @@ type PendingCheckin = {
   user_id: string;
   status: string;
   created_at: string;
-  users: {
-    id: string;
-    display_name: string | null;
-    username: string | null;
-  } | null;
+
+  // Provided by page.tsx mapping:
+  display_name?: string;
+
+  // Optional nested join (in case you later pass it through)
+  user?: { display_name?: string | null } | null;
 };
 
 type Props = {
@@ -37,11 +38,7 @@ type Props = {
   occurrences: Occurrence[];
 };
 
-export default function OrganizerPanel({
-  activityId,
-  pendingCheckins,
-  occurrences,
-}: Props) {
+export default function OrganizerPanel({ activityId, pendingCheckins, occurrences }: Props) {
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -97,22 +94,28 @@ export default function OrganizerPanel({
     return date.toLocaleString("cs-CZ", {
       day: "numeric",
       month: "short",
+      year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
   };
 
-  const getUserDisplayName = (user: PendingCheckin["users"]) => {
-    if (!user) return "Neznámý";
-    return user.display_name || user.username || `User ${user.id.slice(0, 8)}`;
+  const getUserDisplayName = (checkin: PendingCheckin) => {
+    // Prefer the already-mapped display_name from server page
+    const fromMapped = checkin.display_name?.trim();
+    if (fromMapped) return fromMapped;
+
+    // Or nested join if present
+    const fromJoin = checkin.user?.display_name?.trim();
+    if (fromJoin) return fromJoin;
+
+    // Fallback
+    return `User ${checkin.user_id.slice(0, 8)}`;
   };
 
   // Group check-ins by occurrence
   const checkinsByOccurrence = pendingCheckins.reduce((acc, checkin) => {
-    if (!acc[checkin.occurrence_id]) {
-      acc[checkin.occurrence_id] = [];
-    }
-    acc[checkin.occurrence_id].push(checkin);
+    (acc[checkin.occurrence_id] ||= []).push(checkin);
     return acc;
   }, {} as Record<string, PendingCheckin[]>);
 
@@ -136,33 +139,21 @@ export default function OrganizerPanel({
                 Přidat běh
               </Button>
             </DialogTrigger>
+
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Přidat nový běh</DialogTitle>
-                <DialogDescription>
-                  Zadej datum a čas nového běhu
-                </DialogDescription>
+                <DialogDescription>Zadej datum a čas nového běhu</DialogDescription>
               </DialogHeader>
 
               <form onSubmit={handleCreateOccurrence} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="starts_at">Datum a čas *</Label>
-                  <Input
-                    id="starts_at"
-                    name="starts_at"
-                    type="datetime-local"
-                    required
-                    disabled={isCreating}
-                  />
+                  <Input id="starts_at" name="starts_at" type="datetime-local" required disabled={isCreating} />
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                    disabled={isCreating}
-                  >
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isCreating}>
                     Zrušit
                   </Button>
                   <Button type="submit" disabled={isCreating}>
@@ -186,7 +177,7 @@ export default function OrganizerPanel({
 
               <div className="space-y-4">
                 {occurrences
-                  .filter((occ) => checkinsByOccurrence[occ.id])
+                  .filter((occ) => checkinsByOccurrence[occ.id]?.length)
                   .map((occurrence) => {
                     const checkinsForOccurrence = checkinsByOccurrence[occurrence.id] || [];
 
@@ -194,9 +185,7 @@ export default function OrganizerPanel({
                       <div key={occurrence.id} className="space-y-2">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="w-3 h-3" />
-                          <span className="font-medium">
-                            {formatDateTime(occurrence.starts_at)}
-                          </span>
+                          <span className="font-medium">{formatDateTime(occurrence.starts_at)}</span>
                           <Badge variant="secondary" className="text-xs">
                             {checkinsForOccurrence.length}
                           </Badge>
@@ -209,12 +198,8 @@ export default function OrganizerPanel({
                               className="flex items-center justify-between gap-4 p-2 rounded-lg bg-background"
                             >
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">
-                                  {getUserDisplayName(checkin.users)}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {formatDateTime(checkin.created_at)}
-                                </p>
+                                <p className="text-sm font-medium truncate">{getUserDisplayName(checkin)}</p>
+                                <p className="text-xs text-muted-foreground">{formatDateTime(checkin.created_at)}</p>
                               </div>
 
                               <Button
