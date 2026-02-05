@@ -36,6 +36,7 @@ export default function XpHistory() {
   const [events, setEvents] = useState<XpEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  // Cursor is opaque base64-encoded token from API (tuple: created_at, id)
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [source, setSource] = useState<SourceFilter>("all");
 

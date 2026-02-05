@@ -1,6 +1,35 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
 
+/**
+ * Decode cursor from base64 JSON or handle legacy format
+ */
+function decodeCursor(cursorParam: string): { created_at: string; id: string } | null {
+  try {
+    // Try to decode as base64 JSON
+    const decoded = Buffer.from(cursorParam, "base64").toString("utf-8");
+    const parsed = JSON.parse(decoded);
+
+    if (parsed.created_at && parsed.id) {
+      return { created_at: parsed.created_at, id: parsed.id };
+    }
+
+    // Fallback: treat as plain ISO timestamp (backward compatibility)
+    return { created_at: cursorParam, id: "" };
+  } catch {
+    // Invalid cursor, ignore
+    return null;
+  }
+}
+
+/**
+ * Encode cursor to base64 JSON
+ */
+function encodeCursor(created_at: string, id: string): string {
+  const obj = { created_at, id };
+  return Buffer.from(JSON.stringify(obj)).toString("base64");
+}
+
 export async function GET(req: Request) {
   try {
     const supabase = await getSupabaseServerClient();
@@ -29,7 +58,7 @@ export async function GET(req: Request) {
       50
     );
 
-    // 3️⃣ Build query
+    // 3️⃣ Build base query
     let query = supabase
       .from("user_xp_events")
       .select("id, source, source_id, xp_delta, created_at")
@@ -43,9 +72,21 @@ export async function GET(req: Request) {
       query = query.eq("source", sourceParam);
     }
 
-    // Apply cursor pagination (using created_at)
+    // Apply cursor pagination (using tuple: created_at, id)
     if (cursorParam) {
-      query = query.lt("created_at", cursorParam);
+      const cursor = decodeCursor(cursorParam);
+
+      if (cursor) {
+        if (cursor.id) {
+          // Full tuple cursor: (created_at < c) OR (created_at = c AND id < c.id)
+          query = query.or(
+            `created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`
+          );
+        } else {
+          // Legacy cursor (created_at only)
+          query = query.lt("created_at", cursor.created_at);
+        }
+      }
     }
 
     const { data: events, error } = await query;
@@ -66,8 +107,13 @@ export async function GET(req: Request) {
     // 4️⃣ Handle pagination
     const hasMore = events && events.length > limit;
     const resultEvents = hasMore ? events.slice(0, limit) : events || [];
+
+    // Encode next_cursor as tuple (created_at, id)
     const nextCursor = hasMore && resultEvents.length > 0
-      ? resultEvents[resultEvents.length - 1].created_at
+      ? encodeCursor(
+          resultEvents[resultEvents.length - 1].created_at,
+          resultEvents[resultEvents.length - 1].id
+        )
       : null;
 
     return NextResponse.json({
