@@ -24,12 +24,7 @@ type PendingCheckin = {
   user_id: string;
   status: string;
   created_at: string;
-
-  // Provided by page.tsx mapping:
   display_name?: string;
-
-  // Optional nested join (in case you later pass it through)
-  user?: { display_name?: string | null } | null;
 };
 
 type Props = {
@@ -98,19 +93,6 @@ export default function OrganizerPanel({ activityId, pendingCheckins, occurrence
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
-
-  const getUserDisplayName = (checkin: PendingCheckin) => {
-    // Prefer the already-mapped display_name from server page
-    const fromMapped = checkin.display_name?.trim();
-    if (fromMapped) return fromMapped;
-
-    // Or nested join if present
-    const fromJoin = checkin.user?.display_name?.trim();
-    if (fromJoin) return fromJoin;
-
-    // Fallback
-    return `User ${checkin.user_id.slice(0, 8)}`;
   };
 
   // Group check-ins by occurrence
@@ -198,7 +180,9 @@ export default function OrganizerPanel({ activityId, pendingCheckins, occurrence
                               className="flex items-center justify-between gap-4 p-2 rounded-lg bg-background"
                             >
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{getUserDisplayName(checkin)}</p>
+                                <p className="text-sm font-medium truncate">
+                                  {checkin.display_name ?? `User ${checkin.user_id.slice(0, 8)}`}
+                                </p>
                                 <p className="text-xs text-muted-foreground">{formatDateTime(checkin.created_at)}</p>
                               </div>
 
