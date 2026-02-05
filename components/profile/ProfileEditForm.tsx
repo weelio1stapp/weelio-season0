@@ -66,21 +66,30 @@ export default function ProfileEditForm({
     setIsSubmitting(true);
     setError(null);
 
+    // Validate display_name before submitting
+    const trimmedName = displayName.trim();
+    if (!trimmedName) {
+      setError("Zobrazované jméno je povinné");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const formData = new FormData();
 
-      // Add display name if changed
-      if (displayName.trim() !== (profile?.display_name || "")) {
-        formData.append("display_name", displayName.trim());
-      }
+      // ALWAYS send display_name (API requires it)
+      formData.append("display_name", trimmedName);
 
       // Add avatar if selected
       if (avatarFile) {
         formData.append("avatar", avatarFile);
       }
 
-      // Check if there are any changes
-      if (!formData.has("display_name") && !formData.has("avatar")) {
+      // Check if there are any actual changes
+      const nameChanged = trimmedName !== (profile?.display_name || "");
+      const avatarChanged = avatarFile !== null;
+
+      if (!nameChanged && !avatarChanged) {
         setError("Nebyly provedeny žádné změny.");
         setIsSubmitting(false);
         return;
@@ -115,7 +124,9 @@ export default function ProfileEditForm({
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Display Name */}
         <div className="space-y-2">
-          <Label htmlFor="display_name">Zobrazované jméno</Label>
+          <Label htmlFor="display_name">
+            Zobrazované jméno <span className="text-destructive">*</span>
+          </Label>
           <Input
             type="text"
             id="display_name"
@@ -123,7 +134,14 @@ export default function ProfileEditForm({
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Zadejte vaše jméno"
             maxLength={50}
+            required
+            className={displayName.trim() === "" ? "border-destructive" : ""}
           />
+          {displayName.trim() === "" && (
+            <p className="text-sm text-destructive">
+              Zobrazované jméno je povinné
+            </p>
+          )}
           <p className="text-xs text-muted-foreground">
             Toto jméno se zobrazí v žebříčcích a na vašich místech
           </p>
@@ -198,7 +216,7 @@ export default function ProfileEditForm({
         <div className="flex items-center gap-4 pt-4">
           <Button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || displayName.trim() === ""}
             className="flex-1"
           >
             {isSubmitting ? "Ukládám..." : "Uložit změny"}

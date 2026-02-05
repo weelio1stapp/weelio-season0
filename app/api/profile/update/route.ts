@@ -32,6 +32,10 @@ export async function POST(req: Request) {
     typeof displayNameRaw === "string" ? displayNameRaw.trim().slice(0, 50) : "";
 
   if (!display_name) {
+    console.error("Profile update: display_name is required but was missing or empty", {
+      userId: user.id,
+      hasAvatar: avatar instanceof File,
+    });
     return jsonError("display_name is required");
   }
 
