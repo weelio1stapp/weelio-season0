@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,12 +17,17 @@ export default async function ActivityDetailPage({ params }: Props) {
   const { slug } = await params;
   const supabase = await getSupabaseServerClient();
 
-  // Get current user
+  // 1) Current user (server-side)
   const {
     data: { user },
+    error: userErr,
   } = await supabase.auth.getUser();
 
-  // Fetch activity
+  if (userErr) {
+    console.error("auth.getUser error:", userErr);
+  }
+
+  // 2) Activity by slug
   const { data: activity, error: activityError } = await supabase
     .from("activities")
     .select("*")
@@ -27,20 +35,30 @@ export default async function ActivityDetailPage({ params }: Props) {
     .single();
 
   if (activityError || !activity) {
+    console.error("Fetch activity error:", activityError);
     notFound();
   }
 
-  // Check if user is organizer
+  // 3) Organizer check via RPC (robust)
   let isOrganizer = false;
   if (user) {
-    const { data: organizerCheck } = await supabase.rpc("is_activity_organizer", {
-      p_activity_id: activity.id,
-      p_user_id: user.id,
-    });
-    isOrganizer = organizerCheck === true;
+    const { data: organizerCheck, error: orgErr } = await supabase.rpc(
+      "is_activity_organizer",
+      {
+        p_activity_id: activity.id,
+        p_user_id: user.id,
+      }
+    );
+
+    if (orgErr) {
+      console.error("is_activity_organizer RPC error:", orgErr);
+      // Keep isOrganizer false, but now we know WHY.
+    } else {
+      isOrganizer = organizerCheck === true;
+    }
   }
 
-  // Fetch occurrences (latest first)
+  // 4) Occurrences
   const { data: occurrences, error: occurrencesError } = await supabase
     .from("activity_occurrences")
     .select("*")
@@ -52,48 +70,44 @@ export default async function ActivityDetailPage({ params }: Props) {
     console.error("Fetch occurrences error:", occurrencesError);
   }
 
-  const occurrencesList = occurrences || [];
+  const occurrencesList = occurrences ?? [];
   const occurrenceIds = occurrencesList.map((o) => o.id);
 
-  // Fetch user's check-ins for these occurrences
-  let myCheckins: Record<string, any> = {};
+  // 5) My check-ins (for badges/buttons)
+  const myCheckins: Record<string, any> = {};
   if (user && occurrenceIds.length > 0) {
-    const { data: checkins } = await supabase
+    const { data: checkins, error: myCheckinsErr } = await supabase
       .from("activity_checkins")
       .select("*")
       .eq("user_id", user.id)
       .in("occurrence_id", occurrenceIds);
 
+    if (myCheckinsErr) {
+      console.error("Fetch my checkins error:", myCheckinsErr);
+    }
+
     if (checkins) {
-      checkins.forEach((c) => {
+      for (const c of checkins) {
         myCheckins[c.occurrence_id] = c;
-      });
+      }
     }
   }
 
-  // Fetch pending check-ins for organizer
+  // 6) Pending check-ins (organizer only)
+  // IMPORTANT: keep it simple for MVP; nested joins often break if relationships are not defined.
   let pendingCheckins: any[] = [];
   if (isOrganizer && occurrenceIds.length > 0) {
-    const { data: pending } = await supabase
+    const { data: pending, error: pendingErr } = await supabase
       .from("activity_checkins")
-      .select(`
-        id,
-        occurrence_id,
-        user_id,
-        status,
-        created_at,
-        users:user_id (
-          id,
-          display_name,
-          username
-        )
-      `)
+      .select("id, occurrence_id, user_id, status, created_at")
       .eq("status", "pending")
       .in("occurrence_id", occurrenceIds)
       .order("created_at", { ascending: false });
 
-    if (pending) {
-      pendingCheckins = pending;
+    if (pendingErr) {
+      console.error("Fetch pending checkins error:", pendingErr);
+    } else {
+      pendingCheckins = pending ?? [];
     }
   }
 
@@ -112,9 +126,17 @@ export default async function ActivityDetailPage({ params }: Props) {
                 </CardDescription>
               )}
             </div>
-            <Badge variant="secondary" className="text-sm">
-              {activity.type}
-            </Badge>
+
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-sm">
+                {activity.type}
+              </Badge>
+              {isOrganizer && (
+                <Badge variant="outline" className="text-sm">
+                  organizer
+                </Badge>
+              )}
+            </div>
           </div>
         </CardHeader>
 
@@ -128,13 +150,13 @@ export default async function ActivityDetailPage({ params }: Props) {
       </Card>
 
       {/* Organizer Panel */}
-      {isOrganizer && (
+      {isOrganizer ? (
         <OrganizerPanel
           activityId={activity.id}
           pendingCheckins={pendingCheckins}
           occurrences={occurrencesList}
         />
-      )}
+      ) : null}
 
       {/* Occurrences List */}
       <Card>
@@ -158,6 +180,16 @@ export default async function ActivityDetailPage({ params }: Props) {
               {isOrganizer && (
                 <p className="text-sm mt-1">
                   Použij panel organizátora výše pro přidání nového běhu.
+                </p>
+              )}
+              {!isOrganizer && user && (
+                <p className="text-sm mt-1">
+                  Jsi přihlášený, ale nejsi organizátor této aktivity.
+                </p>
+              )}
+              {!user && (
+                <p className="text-sm mt-1">
+                  Přihlas se, ať můžeš dělat check-in a sbírat XP.
                 </p>
               )}
             </div>
