@@ -1,5 +1,14 @@
 import { ReactNode } from "react";
 import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 
 interface LeaderboardCardProps {
   title: string;
@@ -17,31 +26,25 @@ export default function LeaderboardCard({
   children,
 }: LeaderboardCardProps) {
   return (
-    <div className="bg-white rounded-lg shadow-[var(--shadow-md)] overflow-hidden hover:shadow-[var(--shadow-lg)] transition-shadow duration-200">
-      <div className="p-6">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h2 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-              {icon && <span className="text-2xl">{icon}</span>}
-              {title}
-            </h2>
-            <p className="text-sm text-[var(--text-secondary)] mt-1">
-              {description}
-            </p>
-          </div>
-        </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          {icon && <span className="text-2xl">{icon}</span>}
+          {title}
+        </CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
 
+      <CardContent className="space-y-4">
         {children}
 
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <Link
-            href={href}
-            className="text-sm font-semibold text-[var(--accent-primary)] hover:underline"
-          >
-            Zobrazit vše →
+        <Button variant="link" asChild className="w-full justify-between p-0 h-auto">
+          <Link href={href}>
+            Zobrazit vše
+            <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
-      </div>
-    </div>
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

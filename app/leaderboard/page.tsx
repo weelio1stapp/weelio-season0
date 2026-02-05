@@ -1,10 +1,11 @@
 import Container from "@/components/Container";
-import PageHeader from "@/components/PageHeader";
+import LeaderboardHeader from "@/components/leaderboard/LeaderboardHeader";
 import LeaderboardCard from "@/components/leaderboard/LeaderboardCard";
 import ChallengesCard from "@/components/leaderboard/ChallengesCard";
 import TopAuthorsPreview from "@/components/leaderboard/TopAuthorsPreview";
 import TopPlacesPreview from "@/components/leaderboard/TopPlacesPreview";
 import TopWalkersPreview from "@/components/leaderboard/TopWalkersPreview";
+import { Card, CardContent } from "@/components/ui/card";
 import { getTopPlaces, getTopAuthors, getTopWalkers } from "@/lib/db/leaderboard";
 import { getProfilesByIds } from "@/lib/db/profiles";
 import {
@@ -45,10 +46,7 @@ export default async function LeaderboardPage() {
 
   return (
     <Container>
-      <PageHeader
-        title="Žebříčky"
-        description="Nejlepší průzkumníci, nejoblíbenější místa a mnoho dalšího"
-      />
+      <LeaderboardHeader seasonName={season?.name} />
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Top Authors */}
@@ -81,25 +79,29 @@ export default async function LeaderboardPage() {
           <TopWalkersPreview walkers={topWalkers} profiles={profiles} />
         </LeaderboardCard>
 
-        {/* Challenges/Seasons */}
-        <ChallengesCard
-          season={season}
-          challenges={challenges}
-          progress={progress}
-          isAuthenticated={!!user}
-        />
+        {/* Challenges/Seasons - with orange glass wrapper */}
+        <div className="glass-orange rounded-lg">
+          <ChallengesCard
+            season={season}
+            challenges={challenges}
+            progress={progress}
+            isAuthenticated={!!user}
+          />
+        </div>
       </div>
 
       {/* Info */}
-      <div className="mt-8 p-6 bg-gradient-to-r from-[var(--accent-primary)]/10 to-[var(--color-earth)]/10 rounded-lg border border-[var(--accent-primary)]/20">
-        <p className="text-[var(--text-secondary)] text-center">
-          Navštěvuj místa, sbírej návštěvy a staň se legendou Weelio!
-          <br />
-          <span className="text-sm">
-            Žebříčky zobrazují statistiky za posledních 30 dní.
-          </span>
-        </p>
-      </div>
+      <Card className="mt-8">
+        <CardContent className="py-6">
+          <p className="text-muted-foreground text-center">
+            Navštěvuj místa, sbírej návštěvy a staň se legendou Weelio!
+            <br />
+            <span className="text-sm">
+              Žebříčky zobrazují statistiky za posledních 30 dní.
+            </span>
+          </p>
+        </CardContent>
+      </Card>
     </Container>
   );
 }
