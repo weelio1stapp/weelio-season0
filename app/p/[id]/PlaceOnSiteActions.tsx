@@ -73,17 +73,19 @@ export default function PlaceOnSiteActions({
 
           {/* Success Block - shown after visit confirmation */}
           {showSuccessBlock && (
-            <Alert className="border-2 border-primary/50 bg-primary/5 animate-in fade-in zoom-in-50 duration-200">
-              <CheckCircle2 className="h-5 w-5 text-primary" />
-              <AlertTitle className="text-base font-semibold">
-                Stopa zanechána
-              </AlertTitle>
-              <AlertDescription className="text-sm text-muted-foreground">
-                {visitResult.is_duplicate
-                  ? "Už jsi tu dnes byl"
-                  : "Byl jsi tu dnes"}
-              </AlertDescription>
-            </Alert>
+            <div className="glass-orange rounded-lg">
+              <Alert className="border-0 bg-transparent animate-in fade-in zoom-in-50 duration-200">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+                <AlertTitle className="text-base font-semibold">
+                  Stopa zanechána
+                </AlertTitle>
+                <AlertDescription className="text-sm text-muted-foreground">
+                  {visitResult.is_duplicate
+                    ? "Už jsi tu dnes byl"
+                    : "Byl jsi tu dnes"}
+                </AlertDescription>
+              </Alert>
+            </div>
           )}
 
           {/* Journal CTA - shown after visit if not hidden */}
@@ -141,7 +143,7 @@ export default function PlaceOnSiteActions({
             ) : (
               <>
                 <Button
-                  variant="secondary"
+                  variant="glassPurple"
                   className="w-full"
                   onClick={handleOpenDialog}
                 >

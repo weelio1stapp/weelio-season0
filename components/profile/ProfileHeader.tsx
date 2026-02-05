@@ -88,10 +88,20 @@ export default function ProfileHeader({
               <h1 className="text-3xl font-bold">{displayName}</h1>
               <div className="flex flex-wrap gap-2">
                 {authorBadge && (
-                  <Badge variant={authorBadge.variant}>{authorBadge.label}</Badge>
+                  <Badge
+                    variant={authorBadge.variant}
+                    className={authorBadge.variant === "default" ? "glass-chip-purple" : ""}
+                  >
+                    {authorBadge.label}
+                  </Badge>
                 )}
                 {walkerBadge && (
-                  <Badge variant={walkerBadge.variant}>{walkerBadge.label}</Badge>
+                  <Badge
+                    variant={walkerBadge.variant}
+                    className={walkerBadge.variant === "default" ? "glass-chip-purple" : ""}
+                  >
+                    {walkerBadge.label}
+                  </Badge>
                 )}
               </div>
             </div>
@@ -101,7 +111,7 @@ export default function ProfileHeader({
 
             {/* Actions */}
             <div className="flex items-center gap-3 pt-2">
-              <Button asChild>
+              <Button variant="glassPurple" asChild>
                 <Link href="/me/edit">
                   <Edit2 className="w-4 h-4 mr-2" />
                   Upravit profil

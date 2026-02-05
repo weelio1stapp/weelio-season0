@@ -320,6 +320,7 @@ export default function VisitDialog({
             </Button>
             <Button
               type="submit"
+              variant="glassPurple"
               disabled={isSubmitting}
               className="flex-1"
             >

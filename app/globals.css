@@ -58,6 +58,221 @@ a {
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Premium Glass Base */
+  .glass {
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-width: 1px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+  }
+
+  .glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.18) 22%,
+      rgba(255, 255, 255, 0) 55%
+    );
+    mix-blend-mode: overlay;
+    opacity: 0.55;
+  }
+
+  .dark .glass::before {
+    opacity: 0.3;
+  }
+
+  .glass::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: 6px 6px;
+    opacity: 0.1;
+    mix-blend-mode: overlay;
+  }
+
+  .dark .glass::after {
+    opacity: 0.06;
+  }
+
+  /* Purple Glass Variant */
+  .glass-purple {
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    background-color: rgba(168, 85, 247, 0.1);
+    border-width: 1px;
+    border-color: rgba(168, 85, 247, 0.2);
+    box-shadow: 0 4px 6px -1px rgba(168, 85, 247, 0.1);
+    transition: all 0.2s;
+  }
+
+  .dark .glass-purple {
+    background-color: rgba(192, 132, 252, 0.12);
+    border-color: rgba(216, 180, 254, 0.15);
+  }
+
+  .glass-purple:hover {
+    background-color: rgba(168, 85, 247, 0.15);
+    border-color: rgba(168, 85, 247, 0.3);
+  }
+
+  .dark .glass-purple:hover {
+    background-color: rgba(192, 132, 252, 0.18);
+    border-color: rgba(216, 180, 254, 0.25);
+  }
+
+  .glass-purple:focus-visible {
+    outline: none;
+    ring: 2px;
+    ring-color: rgba(168, 85, 247, 0.3);
+    ring-offset: 2px;
+  }
+
+  /* Apply glass sheen to purple variant */
+  .glass-purple::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.18) 22%,
+      rgba(255, 255, 255, 0) 55%
+    );
+    mix-blend-mode: overlay;
+    opacity: 0.55;
+  }
+
+  .dark .glass-purple::before {
+    opacity: 0.3;
+  }
+
+  .glass-purple::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: 6px 6px;
+    opacity: 0.1;
+    mix-blend-mode: overlay;
+  }
+
+  .dark .glass-purple::after {
+    opacity: 0.06;
+  }
+
+  /* Orange Glass Variant */
+  .glass-orange {
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    background-color: rgba(249, 115, 22, 0.1);
+    border-width: 1px;
+    border-color: rgba(249, 115, 22, 0.2);
+    box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.1);
+    transition: all 0.2s;
+  }
+
+  .dark .glass-orange {
+    background-color: rgba(251, 146, 60, 0.1);
+    border-color: rgba(253, 186, 116, 0.15);
+  }
+
+  .glass-orange:hover {
+    background-color: rgba(249, 115, 22, 0.15);
+    border-color: rgba(249, 115, 22, 0.3);
+  }
+
+  .dark .glass-orange:hover {
+    background-color: rgba(251, 146, 60, 0.15);
+    border-color: rgba(253, 186, 116, 0.25);
+  }
+
+  /* Apply glass sheen to orange variant */
+  .glass-orange::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.18) 22%,
+      rgba(255, 255, 255, 0) 55%
+    );
+    mix-blend-mode: overlay;
+    opacity: 0.55;
+  }
+
+  .dark .glass-orange::before {
+    opacity: 0.3;
+  }
+
+  .glass-orange::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: 6px 6px;
+    opacity: 0.1;
+    mix-blend-mode: overlay;
+  }
+
+  .dark .glass-orange::after {
+    opacity: 0.06;
+  }
+
+  /* Purple Chip - Smaller variant for badges */
+  .glass-chip-purple {
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background-color: rgba(168, 85, 247, 0.08);
+    border-width: 1px;
+    border-color: rgba(168, 85, 247, 0.2);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transition: all 0.2s;
+  }
+
+  .dark .glass-chip-purple {
+    background-color: rgba(192, 132, 252, 0.1);
+    border-color: rgba(216, 180, 254, 0.15);
+  }
+
+  .glass-chip-purple::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.4),
+      rgba(255, 255, 255, 0.1) 30%,
+      rgba(255, 255, 255, 0) 60%
+    );
+    mix-blend-mode: overlay;
+    opacity: 0.5;
+  }
+
+  .dark .glass-chip-purple::before {
+    opacity: 0.25;
+  }
 }
 
 

@@ -74,34 +74,38 @@ export default function TabsSection({
       <TabsContent value="overview" className="space-y-6">
         {/* Season Info */}
         {season && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                Aktuální sezóna
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <h3 className="text-xl font-bold">{season.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(season.starts_at).toLocaleDateString("cs-CZ")} –{" "}
-                  {new Date(season.ends_at).toLocaleDateString("cs-CZ")}
-                </p>
-                <Badge variant="default">Aktivní</Badge>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="glass-orange rounded-lg">
+            <Card className="border-0 bg-transparent">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Aktuální sezóna
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold">{season.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(season.starts_at).toLocaleDateString("cs-CZ")} –{" "}
+                    {new Date(season.ends_at).toLocaleDateString("cs-CZ")}
+                  </p>
+                  <Badge variant="default">Aktivní</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* Challenges */}
         {challenges.length > 0 && (
-          <ChallengesCard
-            season={season}
-            challenges={challenges}
-            progress={progress}
-            isAuthenticated={true}
-          />
+          <div className="glass-orange rounded-lg">
+            <ChallengesCard
+              season={season}
+              challenges={challenges}
+              progress={progress}
+              isAuthenticated={true}
+            />
+          </div>
         )}
 
         {!season && challenges.length === 0 && (
