@@ -106,7 +106,7 @@ export const cs = {
   riddles: {
     title: "Kešky",
     titleOnPlace: "Kešky na místě",
-    description: "Vyřeš hádanky a získej XP body",
+    description: "Vyřeš hádanky a získej XP body. Použij až na místě – máš omezený počet pokusů.",
     loginPrompt: "Přihlaš se pro řešení kešek",
     loginDesc: "Získej XP body za správné odpovědi.",
     addRiddle: "Přidat kešku",

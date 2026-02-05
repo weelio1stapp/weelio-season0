@@ -203,8 +203,8 @@ export default async function PlaceDetailPage({
 
       <Separator className="my-8" />
 
-      {/* Riddles Section */}
-      {enrichedRiddles.length > 0 && (
+      {/* Riddles Section - show if riddles exist OR user is author (to add first riddle) */}
+      {(enrichedRiddles.length > 0 || isAuthor) && (
         <div className="mb-8">
           <PlaceRiddles
             placeId={place.id}
