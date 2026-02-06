@@ -18,21 +18,24 @@ export default async function EditPlacePage({ params }: Props) {
 
   if (!place) return notFound();
 
-  // Auth + ownership check
+  // auth
   const supabase = await getSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/?login=1");
-  if (user.id !== place.author_user_id) redirect(`/p/${id}`);
 
-  // Bind the placeId to the action
+  // ownership
+  if (user.id !== place.author_user_id) {
+    redirect(`/p/${id}`);
+  }
+
   const boundAction = updatePlaceAction.bind(null, id);
 
   return (
     <Container>
-      <PageHeader title="Upravit místo" description={`Úprava: ${place.name}`} />
+      <PageHeader title="Upravit trasu" description={`Úprava: ${place.name}`} />
 
       <div className="max-w-2xl mx-auto space-y-6">
         <Card>
@@ -43,8 +46,10 @@ export default async function EditPlacePage({ params }: Props) {
           />
         </Card>
 
-        {/* Body trasy (vždy, protože u nás je každé "místo" ve skutečnosti trasa) */}
-        <RoutePointsManager routeId={id} />
+        {/* Body trasy (A -> B + checkpointy). Ve Weelio je to vždy trasa. */}
+        <Card>
+          <RoutePointsManager routeId={id} />
+        </Card>
       </div>
     </Container>
   );
