@@ -108,6 +108,7 @@ export async function getPublicJournalEntriesForPlace(
       .select("*")
       .eq("place_id", placeId)
       .eq("visibility", "public")
+      .eq("is_hidden", false)
       .order("created_at", { ascending: false })
       .limit(limit);
 

@@ -2,6 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserClient";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreVertical, Flag, Trash2 } from "lucide-react";
+import ReportDialog from "@/components/moderation/ReportDialog";
 
 type PlaceMedia = {
   id: string;
@@ -39,6 +47,13 @@ export default function PlaceGallery({
   // Lightbox state
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+
+  // Report dialog state
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{
+    type: "place_photo" | "place_media";
+    id: string;
+  } | null>(null);
 
   const supabase = getSupabaseBrowserClient();
   const isPlaceAuthor = currentUserId === placeAuthorId;
@@ -87,21 +102,23 @@ export default function PlaceGallery({
     try {
       setLoading(true);
 
-      // Fetch from place_media (author uploads)
+      // Fetch from place_media (author uploads) - exclude hidden
       const { data: placeMediaData, error: mediaError } = await supabase
         .from("place_media")
         .select("*")
         .eq("place_id", placeId)
         .eq("media_type", "photo")
+        .eq("is_hidden", false)
         .order("created_at", { ascending: true });
 
       if (mediaError) throw mediaError;
 
-      // Fetch from place_photos (visit uploads)
+      // Fetch from place_photos (visit uploads) - exclude hidden
       const { data: placePhotosData, error: photosError } = await supabase
         .from("place_photos")
         .select("*")
         .eq("place_id", placeId)
+        .eq("is_hidden", false)
         .order("created_at", { ascending: false });
 
       if (photosError) throw photosError;
@@ -366,18 +383,49 @@ export default function PlaceGallery({
                   </div>
                 )}
 
-                {/* Delete button - only for uploader */}
-                {currentUserId && photo.author_user_id === currentUserId && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(photo, index);
-                    }}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                    title="Smazat fotku"
-                  >
-                    ×
-                  </button>
+                {/* Actions menu - for authenticated users */}
+                {currentUserId && (
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-white/90 hover:bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-sm"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {/* Delete - only for photo owner */}
+                        {photo.author_user_id === currentUserId && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(photo, index);
+                            }}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Smazat fotku
+                          </DropdownMenuItem>
+                        )}
+                        {/* Report - only for others' photos */}
+                        {photo.author_user_id !== currentUserId && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReportTarget({
+                                type: photo.source === "place_photos" ? "place_photo" : "place_media",
+                                id: photo.id,
+                              });
+                              setReportDialogOpen(true);
+                            }}
+                          >
+                            <Flag className="w-4 h-4 mr-2" />
+                            Nahlásit
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 )}
 
                 {/* Set as cover button - only for place author and not already cover */}
@@ -507,6 +555,20 @@ export default function PlaceGallery({
             )}
           </div>
         </div>
+      )}
+
+      {/* Report Dialog */}
+      {reportTarget && (
+        <ReportDialog
+          isOpen={reportDialogOpen}
+          onClose={() => {
+            setReportDialogOpen(false);
+            setReportTarget(null);
+          }}
+          targetType={reportTarget.type}
+          targetId={reportTarget.id}
+          targetLabel="tuto fotku"
+        />
       )}
     </div>
   );

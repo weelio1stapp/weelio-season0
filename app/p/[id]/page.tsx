@@ -212,6 +212,7 @@ export default async function PlaceDetailPage({
             solvedRiddleIds={solvedRiddleIdsArray}
             isAuthenticated={!!currentUserId}
             isPlaceAuthor={isAuthor}
+            currentUserId={currentUserId}
           />
         </div>
       )}

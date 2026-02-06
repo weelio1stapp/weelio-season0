@@ -20,12 +20,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1) Load all active riddles for place
+    // 1) Load all active riddles for place (exclude hidden)
     const { data: riddles, error: riddlesError } = await supabase
       .from("place_riddles")
-      .select("id, place_id, prompt, answer_type, xp_reward, max_attempts, cooldown_hours, created_by, created_at")
+      .select("id, place_id, prompt, answer_type, xp_reward, max_attempts, cooldown_hours, author_user_id, created_by, created_at")
       .eq("place_id", place_id)
       .eq("is_active", true)
+      .eq("is_hidden", false)
       .order("created_at", { ascending: true });
 
     if (riddlesError) {
@@ -131,6 +132,7 @@ export async function POST(req: Request) {
         xp_reward: r.xp_reward,
         max_attempts: maxAttempts,
         cooldown_hours: cooldownHours,
+        author_user_id: r.author_user_id,
         created_by: r.created_by,
         created_at: r.created_at,
 

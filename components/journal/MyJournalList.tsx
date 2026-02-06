@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import ReportDialog from "@/components/moderation/ReportDialog";
 
 type Entry = {
   id: string;
@@ -38,6 +39,10 @@ export default function MyJournalList({ entries: initialEntries, placeNames }: P
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  // Report dialog state
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportTargetId, setReportTargetId] = useState<string | null>(null);
 
   // Handle delete (called from AlertDialog confirmation)
   const handleDelete = async (id: string) => {
@@ -247,6 +252,15 @@ export default function MyJournalList({ entries: initialEntries, placeNames }: P
                       >
                         {isDeleting ? copy.common.deleting : copy.common.delete}
                       </button>
+                      <button
+                        onClick={() => {
+                          setReportTargetId(entry.id);
+                          setReportDialogOpen(true);
+                        }}
+                        className="text-xs text-muted-foreground hover:underline"
+                      >
+                        Nahlásit
+                      </button>
                     </div>
                   </div>
 
@@ -305,6 +319,20 @@ export default function MyJournalList({ entries: initialEntries, placeNames }: P
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Report Dialog */}
+      {reportTargetId && (
+        <ReportDialog
+          isOpen={reportDialogOpen}
+          onClose={() => {
+            setReportDialogOpen(false);
+            setReportTargetId(null);
+          }}
+          targetType="journal_entry"
+          targetId={reportTargetId}
+          targetLabel="tento zápis"
+        />
+      )}
     </div>
   );
 }

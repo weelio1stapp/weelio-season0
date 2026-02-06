@@ -131,7 +131,7 @@ export default async function AdminPage() {
 
       <Separator className="my-8" />
 
-      {/* Moderation Queue Placeholder */}
+      {/* Moderation Section */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <Flag className="w-5 h-5" />
@@ -145,14 +145,9 @@ export default async function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="py-8 text-center">
-              <Badge variant="secondary" className="mb-4">
-                🚧 V přípravě
-              </Badge>
-              <p className="text-sm text-muted-foreground">
-                Brzy: mazání nevhodných fotek, zápisů a kešek
-              </p>
-            </div>
+            <Button asChild>
+              <Link href="/admin/moderation">Otevřít frontu moderace</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>

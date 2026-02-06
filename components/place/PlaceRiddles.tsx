@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { KeyRound, Trash2 } from "lucide-react";
+import { KeyRound, Trash2, Flag } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import CreateRiddleModal from "./CreateRiddleModal";
 import { copy } from "@/lib/copy";
+import ReportDialog from "@/components/moderation/ReportDialog";
 
 type Riddle = {
   id: string;
@@ -30,6 +31,7 @@ type Riddle = {
   solved?: boolean;
   can_delete?: boolean;
   next_available_at?: string | null;
+  author_user_id?: string;
 };
 
 // Helper to format time remaining until next_available_at
@@ -57,6 +59,7 @@ type PlaceRiddlesProps = {
   solvedRiddleIds: string[];
   isAuthenticated: boolean;
   isPlaceAuthor: boolean;
+  currentUserId?: string | null;
 };
 
 export default function PlaceRiddles({
@@ -65,6 +68,7 @@ export default function PlaceRiddles({
   solvedRiddleIds: initialSolved,
   isAuthenticated,
   isPlaceAuthor,
+  currentUserId,
 }: PlaceRiddlesProps) {
   const router = useRouter();
   // Use useState to allow immediate updates after actions
@@ -80,6 +84,10 @@ export default function PlaceRiddles({
     >
   >({});
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  // Report dialog state
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportTargetId, setReportTargetId] = useState<string | null>(null);
 
   // Refetch riddles status from backend (source of truth)
   const refetchStatus = async () => {
@@ -329,6 +337,20 @@ export default function PlaceRiddles({
                           <Trash2 className="w-4 h-4 text-red-600" />
                         </Button>
                       )}
+                      {/* Report button - for non-authors */}
+                      {currentUserId && riddle.author_user_id && riddle.author_user_id !== currentUserId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setReportTargetId(riddle.id);
+                            setReportDialogOpen(true);
+                          }}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Flag className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -437,6 +459,20 @@ export default function PlaceRiddles({
             setIsCreateModalOpen(false);
             refetchStatus();
           }}
+        />
+      )}
+
+      {/* Report Dialog */}
+      {reportTargetId && (
+        <ReportDialog
+          isOpen={reportDialogOpen}
+          onClose={() => {
+            setReportDialogOpen(false);
+            setReportTargetId(null);
+          }}
+          targetType="riddle"
+          targetId={reportTargetId}
+          targetLabel="tuto kešku"
         />
       )}
     </Card>
