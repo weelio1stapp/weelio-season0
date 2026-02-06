@@ -31,7 +31,10 @@ export default async function PlaceDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
   const currentUserId = user?.id || null;
-  const isAuthor = currentUserId === place.author_user_id;
+
+  // Robustně přečti autora (v různých částech projektu může být jiný naming)
+  const authorId = (place as any).author_id ?? (place as any).author_user_id;
+  const isAuthor = currentUserId === authorId;
 
   // Check if user has visited today
   const alreadyVisited = currentUserId ? await hasVisitedToday(place.id) : false;
@@ -225,7 +228,7 @@ export default async function PlaceDetailPage({
           profiles={profilesRecord}
           isAuthenticated={!!currentUserId}
           currentUserId={currentUserId}
-          placeAuthorId={place.author_user_id}
+          placeAuthorId={authorId}
           currentCoverPath={place.cover_storage_path}
         />
       </div>

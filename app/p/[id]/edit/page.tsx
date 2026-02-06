@@ -18,16 +18,19 @@ export default async function EditPlacePage({ params }: Props) {
 
   if (!place) return notFound();
 
-  // auth
   const supabase = await getSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/?login=1");
+  if (!user) {
+    redirect("/?login=1");
+  }
 
-  // ownership
-  if (user.id !== place.author_user_id) {
+  // Robustně přečti autora (v různých částech projektu může být jiný naming)
+  const authorId = (place as any).author_id ?? (place as any).author_user_id;
+
+  if (!authorId || user.id !== authorId) {
     redirect(`/p/${id}`);
   }
 
@@ -46,10 +49,8 @@ export default async function EditPlacePage({ params }: Props) {
           />
         </Card>
 
-        {/* Body trasy (A -> B + checkpointy). Ve Weelio je to vždy trasa. */}
-        <Card>
-          <RoutePointsManager routeId={id} />
-        </Card>
+        {/* Body na trase – vždy (protože v aplikaci je vše trasa: min. START + END) */}
+        <RoutePointsManager routeId={id} />
       </div>
     </Container>
   );
