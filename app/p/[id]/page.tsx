@@ -41,8 +41,8 @@ export default async function PlaceDetailPage({
   } = await supabase.auth.getUser();
   const currentUserId = user?.id || null;
 
-  // Robustně přečti autora (v různých částech projektu může být jiný naming)
-  const authorId = (place as any).author_id ?? (place as any).author_user_id;
+  // Autor místa (hlavní entity) - podle DB naming ústavy
+  const authorId = place.author_id;
   const isAuthor = currentUserId === authorId;
 
   // Check if user has visited today

@@ -28,8 +28,7 @@ export type PlaceRow = {
   end_lng: number;
 
   area: string;
-  author_id?: string; // Primární autor field (nové záznamy)
-  author_user_id: string; // Fallback pro staré záznamy
+  author_id: string; // Autor místa (hlavní entita)
   created_at: string;
 
   // Cover photo fields
@@ -67,7 +66,7 @@ export async function fetchPlacesFiltered(
 
   // Filter by current user (for "My Places")
   if (filters.myPlaces && currentUserId) {
-    query = query.eq("author_user_id", currentUserId);
+    query = query.eq("author_id", currentUserId);
   }
 
   // Filter by types (OR within category)

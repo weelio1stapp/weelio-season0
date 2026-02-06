@@ -30,10 +30,8 @@ export default async function EditPlacePage({ params }: Props) {
 
   if (!place) return notFound();
 
-  // 3. Robustní kontrola vlastnictví: author_id (primární) nebo author_user_id (fallback)
-  const authorId = (place as any).author_id ?? (place as any).author_user_id;
-
-  if (!authorId || user.id !== authorId) {
+  // 3. Kontrola vlastnictví: author_id (podle DB naming ústavy)
+  if (!place.author_id || user.id !== place.author_id) {
     redirect(`/p/${id}`);
   }
 

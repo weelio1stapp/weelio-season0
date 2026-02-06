@@ -31,11 +31,19 @@ export async function updatePlaceAction(
   }
 
   // 2. Verify ownership
-  const { data: place } = await supabase
+  const { data: place, error: fetchError } = await supabase
     .from("places")
-    .select("author_id, author_user_id")
+    .select("author_id")
     .eq("id", placeId)
     .single();
+
+  if (fetchError) {
+    console.error("Error fetching place for ownership check:", fetchError);
+    return {
+      success: false,
+      message: `Chyba při načítání místa: ${fetchError.message}`,
+    };
+  }
 
   if (!place) {
     return {
@@ -44,10 +52,8 @@ export async function updatePlaceAction(
     };
   }
 
-  // Robustní kontrola vlastnictví: author_id (primární) nebo author_user_id (fallback)
-  const authorId = (place as any).author_id ?? (place as any).author_user_id;
-
-  if (!authorId || authorId !== user.id) {
+  // Kontrola vlastnictví: pouze author_id (podle DB schema)
+  if (!place.author_id || place.author_id !== user.id) {
     return {
       success: false,
       message: "Nemůžeš upravit cizí místo",

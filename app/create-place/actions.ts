@@ -84,7 +84,7 @@ export async function createPlaceAction(
     start_lng: startCoords.lng,
     end_lat: endCoords.lat,
     end_lng: endCoords.lng,
-    author_user_id: user.id,
+    author_id: user.id, // Autor hlavní entity
     route_title: validData.route_title || validData.name, // fallback na name
     route_description: validData.route_description || null,
   });
