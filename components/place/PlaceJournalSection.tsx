@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { NotebookPen } from "lucide-react";
+import { NotebookPen, MoreVertical, Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,7 +11,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import QuickJournalModal from "@/components/journal/QuickJournalModal";
+import ReportDialog from "@/components/moderation/ReportDialog";
 import { copy } from "@/lib/copy";
 
 type JournalEntry = {
@@ -31,6 +38,7 @@ type PlaceJournalSectionProps = {
   journalEntries: JournalEntry[];
   profiles: Record<string, Profile>;
   isAuthenticated: boolean;
+  currentUserId?: string | null;
 };
 
 export default function PlaceJournalSection({
@@ -38,8 +46,11 @@ export default function PlaceJournalSection({
   journalEntries,
   profiles,
   isAuthenticated,
+  currentUserId,
 }: PlaceJournalSectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportTargetId, setReportTargetId] = useState<string | null>(null);
 
   // Format user display - use display_name if available, otherwise fallback
   const formatUserDisplay = (userId: string, profile: Profile | null): string => {
@@ -111,6 +122,28 @@ export default function PlaceJournalSection({
                           {formattedDate}
                         </p>
                       </div>
+
+                      {/* Actions - show report for authenticated users */}
+                      {isAuthenticated && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setReportTargetId(entry.id);
+                                setReportDialogOpen(true);
+                              }}
+                            >
+                              <Flag className="w-4 h-4 mr-2" />
+                              Nahlásit
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
 
                     {/* Content */}
@@ -153,6 +186,20 @@ export default function PlaceJournalSection({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
+
+      {/* Report Dialog */}
+      {reportTargetId && (
+        <ReportDialog
+          isOpen={reportDialogOpen}
+          onClose={() => {
+            setReportDialogOpen(false);
+            setReportTargetId(null);
+          }}
+          targetType="journal_entry"
+          targetId={reportTargetId}
+          targetLabel="tento zápis"
+        />
+      )}
     </>
   );
 }

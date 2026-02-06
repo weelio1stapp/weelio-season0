@@ -57,6 +57,7 @@ export default function PlaceCommunitySection({
               journalEntries={journalEntries}
               profiles={profiles}
               isAuthenticated={isAuthenticated}
+              currentUserId={currentUserId}
             />
           </TabsContent>
 
