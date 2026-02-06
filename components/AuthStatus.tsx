@@ -12,7 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, Shield } from "lucide-react";
+import { isAdmin } from "@/lib/auth/admin";
 
 export default function AuthStatus() {
   const { user, loading } = useAuth();
@@ -74,6 +75,14 @@ export default function AuthStatus() {
               Upravit
             </Link>
           </DropdownMenuItem>
+          {isAdmin(user.id) && (
+            <DropdownMenuItem asChild>
+              <Link href="/admin" className="cursor-pointer">
+                <Shield className="w-4 h-4 mr-2" />
+                Admin
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600 dark:text-red-400">
             <LogOut className="w-4 h-4 mr-2" />
