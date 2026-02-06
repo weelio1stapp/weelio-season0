@@ -5,6 +5,7 @@ import Container from "@/components/Container";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import PlaceForm from "@/components/PlaceForm";
+import { RoutePointsManager } from "@/components/route-points/RoutePointsManager";
 import { updatePlaceAction } from "./actions";
 
 type Props = {
@@ -42,13 +43,20 @@ export default async function EditPlacePage({ params }: Props) {
         description={`Úprava: ${place.name}`}
       />
 
-      <Card className="max-w-2xl mx-auto">
-        <PlaceForm
-          initialData={place}
-          action={boundAction}
-          submitLabel="Uložit změny"
-        />
-      </Card>
+      <div className="max-w-2xl mx-auto space-y-6">
+        <Card>
+          <PlaceForm
+            initialData={place}
+            action={boundAction}
+            submitLabel="Uložit změny"
+          />
+        </Card>
+
+        {/* Sekce pro správu bodů trasy - pouze pokud je typ trasy */}
+        {place.type === "trasa" && (
+          <RoutePointsManager routeId={id} />
+        )}
+      </div>
     </Container>
   );
 }
