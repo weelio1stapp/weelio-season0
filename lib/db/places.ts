@@ -148,17 +148,32 @@ function getTimeCondition(preset: TimePreset): string {
   }
 }
 
-export async function fetchPlaceById(id: string): Promise<PlaceRow | null> {
-  const supabase = await getSupabaseServerClient();
-
+/**
+ * Fetch place by ID using provided Supabase client (for authenticated requests with session)
+ */
+export async function fetchPlaceByIdWithClient(
+  supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>,
+  id: string
+): Promise<PlaceRow | null> {
   const { data, error } = await supabase
     .from("places")
     .select("*")
     .eq("id", id)
     .maybeSingle();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("fetchPlaceByIdWithClient error:", error);
+    throw new Error(error.message);
+  }
   return (data ?? null) as PlaceRow | null;
+}
+
+/**
+ * Fetch place by ID (creates own server client - for public access)
+ */
+export async function fetchPlaceById(id: string): Promise<PlaceRow | null> {
+  const supabase = await getSupabaseServerClient();
+  return fetchPlaceByIdWithClient(supabase, id);
 }
 
 /**

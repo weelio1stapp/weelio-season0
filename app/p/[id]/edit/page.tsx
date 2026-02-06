@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { fetchPlaceById } from "@/lib/db/places";
+import { fetchPlaceByIdWithClient } from "@/lib/db/places";
 import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
 import Container from "@/components/Container";
 import PageHeader from "@/components/PageHeader";
@@ -14,10 +14,8 @@ type Props = {
 
 export default async function EditPlacePage({ params }: Props) {
   const { id } = await params;
-  const place = await fetchPlaceById(id);
 
-  if (!place) return notFound();
-
+  // 1. Auth check NEJDŘÍV (aby server client měl session)
   const supabase = await getSupabaseServerClient();
   const {
     data: { user },
@@ -27,7 +25,12 @@ export default async function EditPlacePage({ params }: Props) {
     redirect("/?login=1");
   }
 
-  // Robustně přečti autora (v různých částech projektu může být jiný naming)
+  // 2. Načti place SE SESSIONEM (RLS povolí čtení) - použij stejný supabase client
+  const place = await fetchPlaceByIdWithClient(supabase, id);
+
+  if (!place) return notFound();
+
+  // 3. Robustní kontrola vlastnictví: author_id (primární) nebo author_user_id (fallback)
   const authorId = (place as any).author_id ?? (place as any).author_user_id;
 
   if (!authorId || user.id !== authorId) {
