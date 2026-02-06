@@ -27,7 +27,7 @@ export async function getPublicRiddlesForPlace(
 
     const { data, error } = await supabase
       .from("place_riddles")
-      .select("id, prompt, answer_type, xp_reward, max_attempts, cooldown_hours, is_active, author_user_id, created_by")
+      .select("id, prompt, answer_type, xp_reward, max_attempts, cooldown_hours, is_active, created_by")
       .eq("place_id", placeId)
       .eq("is_active", true)
       .eq("is_hidden", false)
@@ -66,9 +66,9 @@ export async function getMyRiddlesForPlace(
 
     const { data, error } = await supabase
       .from("place_riddles")
-      .select("id, prompt, answer_type, xp_reward, is_active, created_at")
+      .select("id, prompt, answer_type, xp_reward, is_active, created_by, created_at")
       .eq("place_id", placeId)
-      .eq("author_user_id", user.id)
+      .eq("created_by", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
