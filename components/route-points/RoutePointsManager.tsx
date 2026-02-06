@@ -305,7 +305,7 @@ export function RoutePointsManager({ routeId }: RoutePointsManagerProps) {
                           {/* Posunout nahoru */}
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon"
                             onClick={() => handleMovePoint(index, "up")}
                             disabled={!canMoveUp(index)}
                           >
@@ -315,7 +315,7 @@ export function RoutePointsManager({ routeId }: RoutePointsManagerProps) {
                           {/* Posunout dolů */}
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon"
                             onClick={() => handleMovePoint(index, "down")}
                             disabled={!canMoveDown(index)}
                           >
@@ -325,7 +325,7 @@ export function RoutePointsManager({ routeId }: RoutePointsManagerProps) {
                           {/* Upravit */}
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon"
                             onClick={() => handleEditPoint(point)}
                           >
                             <Pencil className="h-4 w-4" />
@@ -334,7 +334,7 @@ export function RoutePointsManager({ routeId }: RoutePointsManagerProps) {
                           {/* Smazat */}
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon"
                             onClick={() => handleDeleteClick(point)}
                             disabled={!canDelete(point)}
                           >

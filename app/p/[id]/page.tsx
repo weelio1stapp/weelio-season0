@@ -6,6 +6,8 @@ import { hasVisitedToday } from "@/lib/db/visits";
 import { getPublicJournalEntriesForPlace } from "@/lib/db/journal";
 import { getProfilesByIds } from "@/lib/db/profiles";
 import { getPublicRiddlesForPlace } from "@/lib/db/riddles";
+import { fetchRoutePoints } from "@/lib/db/route-points";
+import type { RoutePoint } from "@/lib/db/route-points";
 import PlaceAuthorActions from "@/components/PlaceAuthorActions";
 import PlaceRiddles from "@/components/place/PlaceRiddles";
 import PlaceHero from "./PlaceHero";
@@ -14,6 +16,13 @@ import PlaceOnSiteHint from "./PlaceOnSiteHint";
 import PlaceOnSiteActions from "./PlaceOnSiteActions";
 import PlaceCommunitySection from "./PlaceCommunitySection";
 import { Separator } from "@/components/ui/separator";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export default async function PlaceDetailPage({
   params,
@@ -39,11 +48,19 @@ export default async function PlaceDetailPage({
   // Check if user has visited today
   const alreadyVisited = currentUserId ? await hasVisitedToday(place.id) : false;
 
-  // Load journal entries and riddles
-  const [journalEntries, riddles] = await Promise.all([
+  // Load journal entries, riddles, and route points
+  const [journalEntries, riddles, routePoints] = await Promise.all([
     getPublicJournalEntriesForPlace(place.id, 10),
     getPublicRiddlesForPlace(place.id),
+    fetchRoutePoints(place.id),
   ]);
+
+  // Rozděl route points na start/middle/end
+  const startPoint = routePoints.find((p) => p.kind === "START");
+  const endPoint = routePoints.find((p) => p.kind === "END");
+  const middlePoints = routePoints
+    .filter((p) => p.kind !== "START" && p.kind !== "END")
+    .sort((a, b) => a.order_index - b.order_index);
 
   // Batch load profiles for journal entries
   const userIds = journalEntries.map((entry) => entry.user_id);
@@ -188,6 +205,97 @@ export default async function PlaceDetailPage({
           end_lng={place.end_lng}
         />
       </div>
+
+      {/* Route Points - zobrazí body trasy (start, checkpointy, cíl) */}
+      {routePoints.length > 0 && (
+        <div className="mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Body trasy</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Start bod */}
+                {startPoint && (
+                  <div className="flex items-start gap-3 pb-3 border-b">
+                    <Badge variant="default">Start</Badge>
+                    <div className="flex-1">
+                      <p className="font-medium">
+                        {startPoint.title || "Start"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {startPoint.lat.toFixed(5)}, {startPoint.lng.toFixed(5)}
+                      </p>
+                      {startPoint.note && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {startPoint.note}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Prostřední body (checkpointy, POI, poklady) */}
+                {middlePoints.map((point) => {
+                  const kindLabels: Record<string, string> = {
+                    CHECKPOINT: "Checkpoint",
+                    POI: "Bod zájmu",
+                    TREASURE: "Poklad",
+                  };
+                  const kindVariants: Record<
+                    string,
+                    "default" | "secondary" | "destructive" | "outline"
+                  > = {
+                    CHECKPOINT: "secondary",
+                    POI: "outline",
+                    TREASURE: "destructive",
+                  };
+
+                  return (
+                    <div
+                      key={point.id}
+                      className="flex items-start gap-3 pb-3 border-b last:border-b-0"
+                    >
+                      <Badge variant={kindVariants[point.kind] || "secondary"}>
+                        {kindLabels[point.kind] || point.kind}
+                      </Badge>
+                      <div className="flex-1">
+                        <p className="font-medium">{point.title || "—"}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
+                        </p>
+                        {point.note && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {point.note}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* End bod */}
+                {endPoint && (
+                  <div className="flex items-start gap-3">
+                    <Badge variant="default">Cíl</Badge>
+                    <div className="flex-1">
+                      <p className="font-medium">{endPoint.title || "Cíl"}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {endPoint.lat.toFixed(5)}, {endPoint.lng.toFixed(5)}
+                      </p>
+                      {endPoint.note && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {endPoint.note}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* C) PlaceOnSiteHint - Mental transition */}
       <div className="mb-6">
