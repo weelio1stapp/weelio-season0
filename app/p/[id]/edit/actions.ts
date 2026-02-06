@@ -33,11 +33,21 @@ export async function updatePlaceAction(
   // 2. Verify ownership
   const { data: place } = await supabase
     .from("places")
-    .select("author_user_id")
+    .select("author_id, author_user_id")
     .eq("id", placeId)
     .single();
 
-  if (!place || place.author_user_id !== user.id) {
+  if (!place) {
+    return {
+      success: false,
+      message: "Místo nebylo nalezeno",
+    };
+  }
+
+  // Robustní kontrola vlastnictví: author_id (primární) nebo author_user_id (fallback)
+  const authorId = (place as any).author_id ?? (place as any).author_user_id;
+
+  if (!authorId || authorId !== user.id) {
     return {
       success: false,
       message: "Nemůžeš upravit cizí místo",
@@ -87,7 +97,7 @@ export async function updatePlaceAction(
     };
   }
 
-  // 5. Update in database
+  // 5. Update in database (s kontrolou vlastnictví přes author_id)
   const { error } = await supabase
     .from("places")
     .update({
@@ -104,7 +114,8 @@ export async function updatePlaceAction(
       route_title: validData.route_title || validData.name, // fallback na name
       route_description: validData.route_description || null,
     })
-    .eq("id", placeId);
+    .eq("id", placeId)
+    .eq("author_id", user.id); // Extra ochrana na DB úrovni
 
   if (error) {
     console.error("DB update error:", error);

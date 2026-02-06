@@ -28,7 +28,8 @@ export type PlaceRow = {
   end_lng: number;
 
   area: string;
-  author_user_id: string;
+  author_id?: string; // Primární autor field (nové záznamy)
+  author_user_id: string; // Fallback pro staré záznamy
   created_at: string;
 
   // Cover photo fields
