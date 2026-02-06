@@ -79,6 +79,54 @@ export default function PlaceForm({
         )}
       </div>
 
+      {/* Route Title */}
+      <div>
+        <label
+          htmlFor="route_title"
+          className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
+        >
+          Název trasy *
+        </label>
+        <input
+          type="text"
+          id="route_title"
+          name="route_title"
+          required
+          disabled={isPending}
+          defaultValue={initialData?.route_title || ""}
+          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          placeholder="Např. Na Pramen Labe od potoka za chalupou"
+        />
+        <p className="text-xs text-[var(--text-secondary)] mt-1">
+          Tvoje osobní pojmenování cesty. Cíl je místo, ale trasa je tvoje.
+        </p>
+        {errors.route_title && (
+          <p className="mt-1 text-sm text-red-600">{errors.route_title}</p>
+        )}
+      </div>
+
+      {/* Route Description */}
+      <div>
+        <label
+          htmlFor="route_description"
+          className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
+        >
+          Popis trasy
+        </label>
+        <textarea
+          id="route_description"
+          name="route_description"
+          disabled={isPending}
+          rows={3}
+          defaultValue={initialData?.route_description || ""}
+          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+          placeholder="Krátce popiš, kudy a proč tudy…"
+        />
+        {errors.route_description && (
+          <p className="mt-1 text-sm text-red-600">{errors.route_description}</p>
+        )}
+      </div>
+
       {/* Type */}
       <div>
         <label

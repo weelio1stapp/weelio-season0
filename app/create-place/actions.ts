@@ -39,6 +39,8 @@ export async function createPlaceAction(
     difficulty: formData.get("difficulty"),
     start_coords: formData.get("start_coords"),
     end_coords: formData.get("end_coords"),
+    route_title: formData.get("route_title"),
+    route_description: formData.get("route_description"),
   };
 
   const result = createPlaceSchema.safeParse(rawData);
@@ -83,6 +85,8 @@ export async function createPlaceAction(
     end_lat: endCoords.lat,
     end_lng: endCoords.lng,
     author_user_id: user.id,
+    route_title: validData.route_title || validData.name, // fallback na name
+    route_description: validData.route_description || null,
   });
 
   if (error) {

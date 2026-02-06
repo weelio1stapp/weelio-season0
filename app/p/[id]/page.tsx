@@ -206,6 +206,27 @@ export default async function PlaceDetailPage({
         />
       </div>
 
+      {/* Route Title & Description - personalized route info */}
+      <div className="mb-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">
+                Trasa
+              </p>
+              <h3 className="text-lg font-semibold">
+                {place.route_title || place.name}
+              </h3>
+              {place.route_description && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  {place.route_description}
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Route Points - zobrazí body trasy (start, checkpointy, cíl) */}
       {routePoints.length > 0 && (
         <div className="mb-6">

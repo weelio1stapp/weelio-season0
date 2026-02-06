@@ -34,6 +34,10 @@ export type PlaceRow = {
   // Cover photo fields
   cover_storage_path: string | null;
   cover_public_url: string | null;
+
+  // Route personalization
+  route_title?: string | null;
+  route_description?: string | null;
 };
 
 export async function fetchPlaces(): Promise<PlaceRow[]> {

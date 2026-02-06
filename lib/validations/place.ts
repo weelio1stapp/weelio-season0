@@ -61,6 +61,16 @@ export const createPlaceSchema = z.object({
       (val) => parseLatLng(val) !== null,
       "Neplatný formát. Použij: lat,lng (např. 49.83412, 18.28234)"
     ),
+
+  route_title: z
+    .string()
+    .min(3, "Název trasy musí mít alespoň 3 znaky")
+    .max(200, "Název trasy je příliš dlouhý (max 200 znaků)"),
+
+  route_description: z
+    .string()
+    .max(500, "Popis trasy je příliš dlouhý (max 500 znaků)")
+    .optional(),
 });
 
 export type CreatePlaceInput = z.infer<typeof createPlaceSchema>;
