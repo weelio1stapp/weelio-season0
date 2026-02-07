@@ -15,8 +15,7 @@ import PlacePlanSection from "./PlacePlanSection";
 import PlaceOnSiteHint from "./PlaceOnSiteHint";
 import PlaceOnSiteActions from "./PlaceOnSiteActions";
 import PlaceCommunitySection from "./PlaceCommunitySection";
-import RouteMap from "@/components/routes/RouteMap";
-import RouteTimeline from "@/components/routes/RouteTimeline";
+import RouteSection from "@/components/routes/RouteSection";
 import { Separator } from "@/components/ui/separator";
 import {
   Card,
@@ -254,15 +253,8 @@ export default async function PlaceDetailPage({
         </Card>
       </div>
 
-      {/* Route Map */}
-      <div className="mb-6">
-        <RouteMap points={routePoints} />
-      </div>
-
-      {/* Route Timeline */}
-      <div className="mb-6">
-        <RouteTimeline points={routePoints} />
-      </div>
+      {/* Route Map & Timeline - with synchronized interaction */}
+      <RouteSection points={routePoints} />
 
       {/* C) PlaceOnSiteHint - Mental transition */}
       <div className="mb-6">

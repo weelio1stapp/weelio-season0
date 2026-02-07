@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Polyline, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -15,6 +16,8 @@ L.Icon.Default.mergeOptions({
 
 interface RouteMapClientProps {
   points: RoutePoint[];
+  activePointId?: string | null;
+  onSelectPoint?: (id: string) => void;
 }
 
 // Define colors for each point kind
@@ -27,23 +30,83 @@ const kindColors: Record<string, string> = {
 };
 
 // Create custom colored icons
-const createColoredIcon = (color: string) => {
+const createColoredIcon = (color: string, isActive = false) => {
+  const size = isActive ? 32 : 24;
+  const borderWidth = isActive ? 4 : 3;
+  const shadow = isActive
+    ? "0 4px 8px rgba(0,0,0,0.4), 0 0 0 3px rgba(59, 130, 246, 0.3)"
+    : "0 2px 4px rgba(0,0,0,0.3)";
+
   return L.divIcon({
     className: "custom-marker",
     html: `<div style="
-      width: 24px;
-      height: 24px;
+      width: ${size}px;
+      height: ${size}px;
       border-radius: 50%;
       background-color: ${color};
-      border: 3px solid white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      border: ${borderWidth}px solid white;
+      box-shadow: ${shadow};
+      transition: all 0.2s ease;
     "></div>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   });
 };
 
-export default function RouteMapClient({ points }: RouteMapClientProps) {
+// Custom Marker component with auto-open popup
+function InteractiveMarker({
+  point,
+  isActive,
+  onClick,
+}: {
+  point: RoutePoint;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const markerRef = useRef<L.Marker>(null);
+  const color = kindColors[point.kind] || "#6b7280";
+  const icon = createColoredIcon(color, isActive);
+
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (!marker) return;
+
+    if (isActive) {
+      marker.openPopup();
+    } else {
+      marker.closePopup();
+    }
+  }, [isActive]);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[point.lat, point.lng]}
+      icon={icon}
+      eventHandlers={{
+        click: onClick,
+      }}
+    >
+      <Popup>
+        <div className="text-sm">
+          <p className="font-semibold">{point.title || point.kind}</p>
+          {point.note && (
+            <p className="text-muted-foreground text-xs mt-1">{point.note}</p>
+          )}
+          <p className="text-xs text-muted-foreground mt-1">
+            {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
+          </p>
+        </div>
+      </Popup>
+    </Marker>
+  );
+}
+
+export default function RouteMapClient({
+  points,
+  activePointId,
+  onSelectPoint,
+}: RouteMapClientProps) {
   if (points.length === 0) {
     return (
       <div className="w-full h-[400px] flex items-center justify-center bg-muted rounded-lg">
@@ -81,32 +144,14 @@ export default function RouteMapClient({ points }: RouteMapClientProps) {
         />
 
         {/* Draw markers */}
-        {points.map((point) => {
-          const color = kindColors[point.kind] || "#6b7280";
-          const icon = createColoredIcon(color);
-
-          return (
-            <Marker
-              key={point.id}
-              position={[point.lat, point.lng]}
-              icon={icon}
-            >
-              <Popup>
-                <div className="text-sm">
-                  <p className="font-semibold">{point.title || point.kind}</p>
-                  {point.note && (
-                    <p className="text-muted-foreground text-xs mt-1">
-                      {point.note}
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
-                  </p>
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
+        {points.map((point) => (
+          <InteractiveMarker
+            key={point.id}
+            point={point}
+            isActive={point.id === activePointId}
+            onClick={() => onSelectPoint?.(point.id)}
+          />
+        ))}
       </MapContainer>
     </div>
   );

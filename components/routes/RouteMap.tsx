@@ -15,8 +15,20 @@ const RouteMapClient = dynamic(() => import("./RouteMapClient"), {
 
 interface RouteMapProps {
   points: RoutePoint[];
+  activePointId?: string | null;
+  onSelectPoint?: (id: string) => void;
 }
 
-export default function RouteMap({ points }: RouteMapProps) {
-  return <RouteMapClient points={points} />;
+export default function RouteMap({
+  points,
+  activePointId,
+  onSelectPoint,
+}: RouteMapProps) {
+  return (
+    <RouteMapClient
+      points={points}
+      activePointId={activePointId}
+      onSelectPoint={onSelectPoint}
+    />
+  );
 }

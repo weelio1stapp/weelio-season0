@@ -1,9 +1,14 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { RoutePoint } from "@/lib/db/route-points";
 
 interface RouteTimelineProps {
   points: RoutePoint[];
+  activePointId?: string | null;
+  onSelectPoint?: (id: string) => void;
 }
 
 // Define badge variants and labels
@@ -42,7 +47,23 @@ const kindConfig: Record<
   },
 };
 
-export default function RouteTimeline({ points }: RouteTimelineProps) {
+export default function RouteTimeline({
+  points,
+  activePointId,
+  onSelectPoint,
+}: RouteTimelineProps) {
+  const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
+
+  // Scroll to active point when it changes
+  useEffect(() => {
+    if (activePointId && itemRefs.current[activePointId]) {
+      itemRefs.current[activePointId]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [activePointId]);
+
   if (points.length === 0) {
     return (
       <Card>
@@ -68,6 +89,7 @@ export default function RouteTimeline({ points }: RouteTimelineProps) {
           {/* Route points list */}
           <ol className="space-y-6 relative">
             {points.map((point, index) => {
+              const isActive = point.id === activePointId;
               const config = kindConfig[point.kind] || {
                 label: point.kind,
                 variant: "outline" as const,
@@ -75,10 +97,21 @@ export default function RouteTimeline({ points }: RouteTimelineProps) {
               };
 
               return (
-                <li key={point.id} className="relative pl-10">
+                <li
+                  key={point.id}
+                  ref={(el) => {
+                    itemRefs.current[point.id] = el;
+                  }}
+                  className={`relative pl-10 cursor-pointer transition-colors rounded-lg p-3 -ml-3 ${
+                    isActive ? "bg-muted border-2 border-primary" : "hover:bg-muted/50"
+                  }`}
+                  onClick={() => onSelectPoint?.(point.id)}
+                >
                   {/* Dot on the timeline */}
                   <div
-                    className={`absolute left-0 top-1 w-[30px] h-[30px] rounded-full ${config.color} border-4 border-background z-10 flex items-center justify-center`}
+                    className={`absolute left-0 top-4 w-[30px] h-[30px] rounded-full ${config.color} border-4 border-background z-10 flex items-center justify-center transition-transform ${
+                      isActive ? "scale-110" : ""
+                    }`}
                   >
                     <span className="text-white text-xs font-bold">
                       {index + 1}
