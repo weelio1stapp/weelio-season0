@@ -206,21 +206,48 @@ export default async function PlaceDetailPage({
         />
       </div>
 
-      {/* Route Title & Description - personalized route info */}
+      {/* Route Info - Destinace vs Trasa */}
       <div className="mb-6">
         <Card>
           <CardContent className="pt-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">
-                Trasa
-              </p>
-              <h3 className="text-lg font-semibold">
-                {place.route_title || place.name}
-              </h3>
-              {place.route_description && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  {place.route_description}
+            <div className="space-y-4">
+              {/* Destinace */}
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">
+                  Destinace
                 </p>
+                <h3 className="text-lg font-semibold">{place.name}</h3>
+              </div>
+
+              {/* Trasa - show if route_name exists */}
+              {place.route_name && (
+                <div className="pt-3 border-t">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Trasa
+                  </p>
+                  <h3 className="text-lg font-semibold">{place.route_name}</h3>
+                </div>
+              )}
+
+              {/* Route Title */}
+              {place.route_title && place.route_title !== place.name && (
+                <div className={place.route_name ? "" : "pt-3 border-t"}>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    {place.route_name ? "Titulek" : "Trasa"}
+                  </p>
+                  <h4 className="text-base font-semibold">
+                    {place.route_title}
+                  </h4>
+                </div>
+              )}
+
+              {/* Route Description */}
+              {place.route_description && (
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {place.route_description}
+                  </p>
+                </div>
               )}
             </div>
           </CardContent>

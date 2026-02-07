@@ -48,7 +48,7 @@ export default function PlaceForm({
   };
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={formAction} className="space-y-8">
       {/* General error message */}
       {generalError && (
         <div className="rounded-lg bg-red-50 p-4 text-sm text-red-800">
@@ -56,76 +56,39 @@ export default function PlaceForm({
         </div>
       )}
 
-      {/* Name */}
-      <div>
-        <label
-          htmlFor="name"
-          className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
-        >
-          Název místa *
-        </label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          required
-          disabled={isPending}
-          defaultValue={initialData?.name}
-          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          placeholder="např. Sněžka, Pustevny"
-        />
-        {errors.name && (
-          <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-        )}
-      </div>
+      {/* SEKCE: DESTINACE */}
+      <div className="space-y-6">
+        <div className="border-b pb-2">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+            Destinace
+          </h3>
+          <p className="text-sm text-[var(--text-secondary)] mt-1">
+            Základní informace o místě, kam se vyrážíš
+          </p>
+        </div>
 
-      {/* Route Title */}
-      <div>
-        <label
-          htmlFor="route_title"
-          className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
-        >
-          Název trasy *
-        </label>
-        <input
-          type="text"
-          id="route_title"
-          name="route_title"
-          required
-          disabled={isPending}
-          defaultValue={initialData?.route_title || ""}
-          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          placeholder="Např. Na Pramen Labe od potoka za chalupou"
-        />
-        <p className="text-xs text-[var(--text-secondary)] mt-1">
-          Tvoje osobní pojmenování cesty. Cíl je místo, ale trasa je tvoje.
-        </p>
-        {errors.route_title && (
-          <p className="mt-1 text-sm text-red-600">{errors.route_title}</p>
-        )}
-      </div>
-
-      {/* Route Description */}
-      <div>
-        <label
-          htmlFor="route_description"
-          className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
-        >
-          Popis trasy
-        </label>
-        <textarea
-          id="route_description"
-          name="route_description"
-          disabled={isPending}
-          rows={3}
-          defaultValue={initialData?.route_description || ""}
-          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-          placeholder="Krátce popiš, kudy a proč tudy…"
-        />
-        {errors.route_description && (
-          <p className="mt-1 text-sm text-red-600">{errors.route_description}</p>
-        )}
-      </div>
+        {/* Name */}
+        <div>
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
+          >
+            Název místa *
+          </label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            required
+            disabled={isPending}
+            defaultValue={initialData?.name}
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="např. Sněžka, Pustevny"
+          />
+          {errors.name && (
+            <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+          )}
+        </div>
 
       {/* Type */}
       <div>
@@ -285,32 +248,120 @@ export default function PlaceForm({
       </div>
 
       {/* End Coords */}
-      <div>
-        <label
-          htmlFor="end_coords"
-          className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
-        >
-          Cíl (lat,lng) — kde je poklad *
-        </label>
-        <input
-          type="text"
-          id="end_coords"
-          name="end_coords"
-          required
-          disabled={isPending}
-          defaultValue={formatCoords(
-            initialData?.end_lat,
-            initialData?.end_lng
+        <div>
+          <label
+            htmlFor="end_coords"
+            className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
+          >
+            Cíl (lat,lng) — kde je poklad *
+          </label>
+          <input
+            type="text"
+            id="end_coords"
+            name="end_coords"
+            required
+            disabled={isPending}
+            defaultValue={formatCoords(
+              initialData?.end_lat,
+              initialData?.end_lng
+            )}
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-mono text-sm"
+            placeholder="49.83412, 18.28234"
+          />
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
+            Z Mapy.cz zkopíruj souřadnice. Příklad: 49.83412, 18.28234
+          </p>
+          {errors.end_coords && (
+            <p className="mt-1 text-sm text-red-600">{errors.end_coords}</p>
           )}
-          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-mono text-sm"
-          placeholder="49.83412, 18.28234"
-        />
-        <p className="text-xs text-[var(--text-secondary)] mt-1">
-          Z Mapy.cz zkopíruj souřadnice. Příklad: 49.83412, 18.28234
-        </p>
-        {errors.end_coords && (
-          <p className="mt-1 text-sm text-red-600">{errors.end_coords}</p>
-        )}
+        </div>
+      </div>
+
+      {/* SEKCE: TRASA */}
+      <div className="space-y-6">
+        <div className="border-b pb-2">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+            Trasa
+          </h3>
+          <p className="text-sm text-[var(--text-secondary)] mt-1">
+            Personalizuj svou trasu — dej jí vlastní jméno a popis
+          </p>
+        </div>
+
+        {/* Route Name */}
+        <div>
+          <label
+            htmlFor="route_name"
+            className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
+          >
+            Název trasy
+          </label>
+          <input
+            type="text"
+            id="route_name"
+            name="route_name"
+            disabled={isPending}
+            defaultValue={initialData?.route_name || ""}
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="např. Na Pramen Labe od potoka za chalupou"
+          />
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
+            Volitelné — oddělený od názvu destinace
+          </p>
+          {errors.route_name && (
+            <p className="mt-1 text-sm text-red-600">{errors.route_name}</p>
+          )}
+        </div>
+
+        {/* Route Title */}
+        <div>
+          <label
+            htmlFor="route_title"
+            className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
+          >
+            Titulek trasy
+          </label>
+          <input
+            type="text"
+            id="route_title"
+            name="route_title"
+            disabled={isPending}
+            defaultValue={initialData?.route_title || ""}
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="např. Zážitek na celý den"
+          />
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
+            Volitelné
+          </p>
+          {errors.route_title && (
+            <p className="mt-1 text-sm text-red-600">{errors.route_title}</p>
+          )}
+        </div>
+
+        {/* Route Description */}
+        <div>
+          <label
+            htmlFor="route_description"
+            className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
+          >
+            Popis trasy
+          </label>
+          <textarea
+            id="route_description"
+            name="route_description"
+            disabled={isPending}
+            rows={3}
+            defaultValue={initialData?.route_description || ""}
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="Popiš svou trasu..."
+          />
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
+            Volitelné
+          </p>
+          {errors.route_description && (
+            <p className="mt-1 text-sm text-red-600">{errors.route_description}</p>
+          )}
+        </div>
       </div>
 
       {/* Submit Button */}

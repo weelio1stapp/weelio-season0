@@ -39,6 +39,7 @@ export async function createPlaceAction(
     difficulty: formData.get("difficulty"),
     start_coords: formData.get("start_coords"),
     end_coords: formData.get("end_coords"),
+    route_name: formData.get("route_name"),
     route_title: formData.get("route_title"),
     route_description: formData.get("route_description"),
   };
@@ -85,6 +86,7 @@ export async function createPlaceAction(
     end_lat: endCoords.lat,
     end_lng: endCoords.lng,
     author_id: user.id, // Autor hlavní entity
+    route_name: validData.route_name || null,
     route_title: validData.route_title || validData.name, // fallback na name
     route_description: validData.route_description || null,
   });

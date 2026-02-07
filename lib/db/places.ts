@@ -38,6 +38,7 @@ export type PlaceRow = {
   // Route personalization
   route_title?: string | null;
   route_description?: string | null;
+  route_name?: string | null; // Autorský název trasy (oddělený od destinace)
 };
 
 export async function fetchPlaces(): Promise<PlaceRow[]> {

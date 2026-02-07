@@ -62,6 +62,11 @@ export const createPlaceSchema = z.object({
       "Neplatný formát. Použij: lat,lng (např. 49.83412, 18.28234)"
     ),
 
+  route_name: z
+    .string()
+    .max(200, "Název trasy je příliš dlouhý (max 200 znaků)")
+    .optional(),
+
   route_title: z
     .string()
     .min(3, "Název trasy musí mít alespoň 3 znaky")
