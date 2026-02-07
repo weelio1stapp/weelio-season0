@@ -15,6 +15,8 @@ import PlacePlanSection from "./PlacePlanSection";
 import PlaceOnSiteHint from "./PlaceOnSiteHint";
 import PlaceOnSiteActions from "./PlaceOnSiteActions";
 import PlaceCommunitySection from "./PlaceCommunitySection";
+import RouteMap from "@/components/routes/RouteMap";
+import RouteTimeline from "@/components/routes/RouteTimeline";
 import { Separator } from "@/components/ui/separator";
 import {
   Card,
@@ -54,13 +56,6 @@ export default async function PlaceDetailPage({
     getPublicRiddlesForPlace(place.id),
     fetchRoutePoints(place.id),
   ]);
-
-  // Rozděl route points na start/middle/end
-  const startPoint = routePoints.find((p) => p.kind === "START");
-  const endPoint = routePoints.find((p) => p.kind === "END");
-  const middlePoints = routePoints
-    .filter((p) => p.kind !== "START" && p.kind !== "END")
-    .sort((a, b) => a.order_index - b.order_index);
 
   // Batch load profiles for journal entries
   const userIds = journalEntries.map((entry) => entry.user_id);
@@ -206,36 +201,41 @@ export default async function PlaceDetailPage({
         />
       </div>
 
-      {/* Route Info - Destinace vs Trasa */}
+      {/* Destinace & Autorská Trasa */}
       <div className="mb-6">
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-4">
               {/* Destinace */}
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">
-                  Destinace
+                <p className="text-xs font-medium text-muted-foreground mb-1">
+                  DESTINACE
                 </p>
-                <h3 className="text-lg font-semibold">{place.name}</h3>
+                <h2 className="text-2xl font-bold">{place.name}</h2>
               </div>
 
-              {/* Trasa - show if route_name exists */}
+              {/* Autorská Trasa - show if route_name exists */}
               {place.route_name && (
-                <div className="pt-3 border-t">
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Trasa
-                  </p>
-                  <h3 className="text-lg font-semibold">{place.route_name}</h3>
+                <div className="pt-4 border-t">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      AUTORSKÁ TRASA
+                    </p>
+                    <Badge variant="secondary" className="text-xs">
+                      Autorská trasa
+                    </Badge>
+                  </div>
+                  <h3 className="text-xl font-semibold">{place.route_name}</h3>
                 </div>
               )}
 
               {/* Route Title */}
               {place.route_title && place.route_title !== place.name && (
-                <div className={place.route_name ? "" : "pt-3 border-t"}>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    {place.route_name ? "Titulek" : "Trasa"}
+                <div className={place.route_name ? "" : "pt-4 border-t"}>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                    {place.route_name ? "TITULEK" : "TRASA"}
                   </p>
-                  <h4 className="text-base font-semibold">
+                  <h4 className="text-lg font-semibold">
                     {place.route_title}
                   </h4>
                 </div>
@@ -254,96 +254,15 @@ export default async function PlaceDetailPage({
         </Card>
       </div>
 
-      {/* Route Points - zobrazí body trasy (start, checkpointy, cíl) */}
-      {routePoints.length > 0 && (
-        <div className="mb-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Body trasy</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Start bod */}
-                {startPoint && (
-                  <div className="flex items-start gap-3 pb-3 border-b">
-                    <Badge variant="default">Start</Badge>
-                    <div className="flex-1">
-                      <p className="font-medium">
-                        {startPoint.title || "Start"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {startPoint.lat.toFixed(5)}, {startPoint.lng.toFixed(5)}
-                      </p>
-                      {startPoint.note && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {startPoint.note}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
+      {/* Route Map */}
+      <div className="mb-6">
+        <RouteMap points={routePoints} />
+      </div>
 
-                {/* Prostřední body (checkpointy, POI, poklady) */}
-                {middlePoints.map((point) => {
-                  const kindLabels: Record<string, string> = {
-                    CHECKPOINT: "Checkpoint",
-                    POI: "Bod zájmu",
-                    TREASURE: "Poklad",
-                  };
-                  const kindVariants: Record<
-                    string,
-                    "default" | "secondary" | "destructive" | "outline"
-                  > = {
-                    CHECKPOINT: "secondary",
-                    POI: "outline",
-                    TREASURE: "destructive",
-                  };
-
-                  return (
-                    <div
-                      key={point.id}
-                      className="flex items-start gap-3 pb-3 border-b last:border-b-0"
-                    >
-                      <Badge variant={kindVariants[point.kind] || "secondary"}>
-                        {kindLabels[point.kind] || point.kind}
-                      </Badge>
-                      <div className="flex-1">
-                        <p className="font-medium">{point.title || "—"}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
-                        </p>
-                        {point.note && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {point.note}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* End bod */}
-                {endPoint && (
-                  <div className="flex items-start gap-3">
-                    <Badge variant="default">Cíl</Badge>
-                    <div className="flex-1">
-                      <p className="font-medium">{endPoint.title || "Cíl"}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {endPoint.lat.toFixed(5)}, {endPoint.lng.toFixed(5)}
-                      </p>
-                      {endPoint.note && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {endPoint.note}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* Route Timeline */}
+      <div className="mb-6">
+        <RouteTimeline points={routePoints} />
+      </div>
 
       {/* C) PlaceOnSiteHint - Mental transition */}
       <div className="mb-6">
