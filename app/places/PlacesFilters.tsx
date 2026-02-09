@@ -10,10 +10,12 @@ import {
   DIFFICULTY_LABELS,
   TIME_LABELS,
   SORT_LABELS,
+  AUDIO_STATUS_LABELS,
   buildFilterUrl,
   DifficultyPreset,
   TimePreset,
   SortOption,
+  AudioStatus,
 } from "@/lib/placesFilters";
 
 type Props = {
@@ -145,6 +147,23 @@ export default function PlacesFilters({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Audio status */}
+      <div>
+        <h3 className="text-sm font-semibold mb-3">Audio</h3>
+        <select
+          value={currentFilters.audioStatus ?? ""}
+          onChange={(e) =>
+            updateFilters({ audioStatus: (e.target.value || null) as AudioStatus })
+          }
+          className="w-full md:w-auto px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors"
+        >
+          <option value="">Vše</option>
+          <option value="ready">{AUDIO_STATUS_LABELS.ready}</option>
+          <option value="draft">{AUDIO_STATUS_LABELS.draft}</option>
+          <option value="missing">{AUDIO_STATUS_LABELS.missing}</option>
+        </select>
       </div>
 
       {/* Area dropdown and Sort */}

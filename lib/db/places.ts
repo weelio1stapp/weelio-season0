@@ -105,6 +105,11 @@ export async function fetchPlacesFiltered(
     query = query.eq("area", filters.area);
   }
 
+  // Filter by audio status
+  if (filters.audioStatus) {
+    query = query.eq("audio_status", filters.audioStatus);
+  }
+
   // Apply sorting
   switch (filters.sort) {
     case "newest":

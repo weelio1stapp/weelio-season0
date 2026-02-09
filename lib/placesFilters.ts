@@ -3,6 +3,7 @@ import { PlaceType } from "./db/places";
 export type DifficultyPreset = "easy" | "medium" | "hard";
 export type TimePreset = "lt60" | "btw60_120" | "gt120";
 export type SortOption = "newest" | "shortest" | "easiest" | "hardest";
+export type AudioStatus = "ready" | "draft" | "missing" | null;
 
 export type PlacesFilters = {
   types: PlaceType[];
@@ -11,6 +12,7 @@ export type PlacesFilters = {
   area: string | null;
   sort: SortOption;
   myPlaces: boolean;
+  audioStatus: AudioStatus;
 };
 
 /**
@@ -62,7 +64,14 @@ const time: TimePreset[] = timeParam
   // Parse myPlaces
   const myPlaces = searchParams.mine === "1" || searchParams.mine === "true";
 
-  return { types, difficulty, time, area, sort, myPlaces };
+  // Parse audioStatus
+  const audioParam = searchParams.audio ? String(searchParams.audio) : null;
+  const audioStatus: AudioStatus =
+    audioParam && ["ready", "draft", "missing"].includes(audioParam)
+      ? (audioParam as "ready" | "draft" | "missing")
+      : null;
+
+  return { types, difficulty, time, area, sort, myPlaces, audioStatus };
 }
 
 /**
@@ -110,6 +119,10 @@ export function buildFilterUrl(filters: Partial<PlacesFilters>): string {
     params.set("mine", "1");
   }
 
+  if (filters.audioStatus) {
+    params.set("audio", filters.audioStatus);
+  }
+
   const query = params.toString();
   return query ? `?${query}` : "";
 }
@@ -153,4 +166,16 @@ export const SORT_LABELS: Record<SortOption, string> = {
   shortest: "Nejkratší",
   easiest: "Nejlehčí",
   hardest: "Nejtěžší",
+};
+
+/**
+ * Audio status labels
+ */
+export const AUDIO_STATUS_LABELS: Record<
+  "ready" | "draft" | "missing",
+  string
+> = {
+  ready: "🎧 Připravené audio",
+  draft: "📝 Rozpracované audio",
+  missing: "❌ Bez audia",
 };

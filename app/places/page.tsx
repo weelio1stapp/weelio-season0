@@ -101,6 +101,22 @@ export default async function PlacesPage({ searchParams }: Props) {
                       <span className="rounded-full border px-2 py-1">
                         ⚡ {p.difficulty}/5
                       </span>
+                      {/* Audio status badge */}
+                      {p.audio_status === "ready" && (
+                        <span className="rounded-full bg-primary text-primary-foreground px-2 py-1">
+                          🎧 Audio připraveno
+                        </span>
+                      )}
+                      {p.audio_status === "draft" && (
+                        <span className="rounded-full border border-muted-foreground/30 px-2 py-1">
+                          📝 Audio rozpracované
+                        </span>
+                      )}
+                      {p.audio_status === "missing" && (
+                        <span className="rounded-full bg-muted text-muted-foreground px-2 py-1">
+                          ❌ Bez audia
+                        </span>
+                      )}
                     </div>
 
                     <p className="mt-3 text-sm opacity-80">{p.why}</p>
