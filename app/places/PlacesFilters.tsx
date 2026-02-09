@@ -82,14 +82,14 @@ export default function PlacesFilters({
                 : "border-gray-200 hover:border-gray-300"
             }`}
           >
-            {currentFilters.myPlaces ? "✓ Moje místa" : "Moje místa"}
+            {currentFilters.myPlaces ? "✓ Moje trasy" : "Moje trasy"}
           </button>
         </div>
       )}
 
       {/* Type chips */}
       <div>
-        <h3 className="text-sm font-semibold mb-3">Typ místa</h3>
+        <h3 className="text-sm font-semibold mb-3">Typ destinace</h3>
         <div className="flex flex-wrap gap-2">
           {allPlaceTypes.map((type) => (
             <button

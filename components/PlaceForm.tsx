@@ -63,7 +63,7 @@ export default function PlaceForm({
             Destinace
           </h3>
           <p className="text-sm text-[var(--text-secondary)] mt-1">
-            Základní informace o místě, kam se vyrážíš
+            Cílové místo, kam trasa vede
           </p>
         </div>
 
@@ -73,7 +73,7 @@ export default function PlaceForm({
             htmlFor="name"
             className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
           >
-            Název místa *
+            Destinace *
           </label>
           <input
             type="text"
@@ -85,6 +85,9 @@ export default function PlaceForm({
             className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="např. Sněžka, Pustevny"
           />
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
+            Cílové místo, kam trasa vede (např. Pramen Labe).
+          </p>
           {errors.name && (
             <p className="mt-1 text-sm text-red-600">{errors.name}</p>
           )}
@@ -96,7 +99,7 @@ export default function PlaceForm({
           htmlFor="type"
           className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
         >
-          Typ místa *
+          Typ destinace *
         </label>
         <select
           id="type"
@@ -146,7 +149,7 @@ export default function PlaceForm({
           htmlFor="why"
           className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
         >
-          Proč sem jít? *
+          Proč jít touto trasou? *
         </label>
         <textarea
           id="why"
@@ -156,7 +159,7 @@ export default function PlaceForm({
           rows={4}
           defaultValue={initialData?.why}
           className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-          placeholder="Popiš, proč se sem vyplatí vyrazit..."
+          placeholder="Popiš, proč se vyplatí jít touto trasou..."
         />
         {errors.why && (
           <p className="mt-1 text-sm text-red-600">{errors.why}</p>
@@ -224,7 +227,7 @@ export default function PlaceForm({
           htmlFor="start_coords"
           className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
         >
-          Start (lat,lng) — odkud vyrážíš *
+          Začátek trasy (start) *
         </label>
         <input
           type="text"
@@ -253,7 +256,7 @@ export default function PlaceForm({
             htmlFor="end_coords"
             className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
           >
-            Cíl (lat,lng) — kde je poklad *
+            Cíl trasy (konec) *
           </label>
           <input
             type="text"
@@ -281,10 +284,10 @@ export default function PlaceForm({
       <div className="space-y-6">
         <div className="border-b pb-2">
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-            Trasa
+            Autorská trasa
           </h3>
           <p className="text-sm text-[var(--text-secondary)] mt-1">
-            Personalizuj svou trasu — dej jí vlastní jméno a popis
+            Tvoje konkrétní cesta – dej jí vlastní jméno a popis
           </p>
         </div>
 
@@ -294,7 +297,7 @@ export default function PlaceForm({
             htmlFor="route_name"
             className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
           >
-            Název trasy
+            Název trasy (autorský)
           </label>
           <input
             type="text"
@@ -306,7 +309,7 @@ export default function PlaceForm({
             placeholder="např. Na Pramen Labe od potoka za chalupou"
           />
           <p className="text-xs text-[var(--text-secondary)] mt-1">
-            Volitelné — oddělený od názvu destinace
+            Volitelné. Popiš svoji konkrétní cestu – klidně neoficiálně.
           </p>
           {errors.route_name && (
             <p className="mt-1 text-sm text-red-600">{errors.route_name}</p>

@@ -26,7 +26,7 @@ export async function updatePlaceAction(
   if (!user) {
     return {
       success: false,
-      message: "Musíš být přihlášený, abys mohl upravit místo",
+      message: "Musíš být přihlášený, abys mohl upravit trasu",
     };
   }
 
@@ -41,14 +41,14 @@ export async function updatePlaceAction(
     console.error("Error fetching place for ownership check:", fetchError);
     return {
       success: false,
-      message: `Chyba při načítání místa: ${fetchError.message}`,
+      message: `Chyba při načítání trasy: ${fetchError.message}`,
     };
   }
 
   if (!place) {
     return {
       success: false,
-      message: "Místo nebylo nalezeno",
+      message: "Trasa nebyla nalezena",
     };
   }
 
@@ -56,7 +56,7 @@ export async function updatePlaceAction(
   if (!place.author_id || place.author_id !== user.id) {
     return {
       success: false,
-      message: "Nemůžeš upravit cizí místo",
+      message: "Nemůžeš upravit cizí trasu",
     };
   }
 

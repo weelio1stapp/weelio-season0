@@ -25,7 +25,7 @@ export async function createPlaceAction(
   if (!user) {
     return {
       success: false,
-      message: "Musíš být přihlášený, abys mohl přidat místo",
+      message: "Musíš být přihlášený, abys mohl vytvořit trasu",
     };
   }
 

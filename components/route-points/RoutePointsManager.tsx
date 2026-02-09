@@ -126,7 +126,7 @@ export function RoutePointsManager({ routeId }: RoutePointsManagerProps) {
         const result = await response.json();
 
         if (result.ok) {
-          toast.success("Bod byl úspěšně upraven");
+          toast.success("Bod na trase byl upraven");
           await fetchPoints();
         } else {
           toast.error(result.error || "Nepodařilo se upravit bod");
@@ -142,7 +142,7 @@ export function RoutePointsManager({ routeId }: RoutePointsManagerProps) {
         const result = await response.json();
 
         if (result.ok) {
-          toast.success("Bod byl úspěšně přidán");
+          toast.success("Bod na trase byl přidán");
           await fetchPoints();
         } else {
           toast.error(result.error || "Nepodařilo se přidat bod");
@@ -171,7 +171,7 @@ export function RoutePointsManager({ routeId }: RoutePointsManagerProps) {
       const result = await response.json();
 
       if (result.ok) {
-        toast.success("Bod byl úspěšně smazán");
+        toast.success("Bod na trase byl smazán");
         await fetchPoints();
       } else {
         toast.error(result.error || "Nepodařilo se smazat bod");
@@ -256,12 +256,12 @@ export function RoutePointsManager({ routeId }: RoutePointsManagerProps) {
             <div>
               <CardTitle>Body na trase</CardTitle>
               <CardDescription>
-                Spravujte checkpointy a další body na vaší trase
+                Spravuj zastávky a další body na své trase
               </CardDescription>
             </div>
             <Button onClick={handleAddPoint} size="sm">
               <Plus className="mr-2 h-4 w-4" />
-              Přidat bod
+              Přidat bod na trase
             </Button>
           </div>
         </CardHeader>

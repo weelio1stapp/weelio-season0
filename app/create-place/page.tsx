@@ -20,8 +20,8 @@ export default async function CreatePlacePage() {
   return (
     <Container>
       <PageHeader
-        title="Přidat nové místo"
-        description="Sdílej s ostatními své oblíbené místo"
+        title="Vytvořit trasu"
+        description="Sdílej s ostatními svou oblíbenou trasu"
       />
 
       <Card className="max-w-2xl mx-auto">

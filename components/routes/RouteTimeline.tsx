@@ -21,7 +21,7 @@ const kindConfig: Record<
   }
 > = {
   START: {
-    label: "Start",
+    label: "Začátek",
     variant: "default",
     color: "bg-green-500",
   },
@@ -31,12 +31,12 @@ const kindConfig: Record<
     color: "bg-red-500",
   },
   CHECKPOINT: {
-    label: "Checkpoint",
+    label: "Zastávka",
     variant: "secondary",
     color: "bg-blue-500",
   },
   POI: {
-    label: "Bod zájmu",
+    label: "Zajímavé místo",
     variant: "outline",
     color: "bg-blue-400",
   },
@@ -69,7 +69,7 @@ export default function RouteTimeline({
       <Card>
         <CardContent className="pt-6">
           <p className="text-muted-foreground text-center">
-            Žádné body trasy k zobrazení
+            Trasa zatím nemá žádné body. Přidej START a CÍL v editaci.
           </p>
         </CardContent>
       </Card>
@@ -79,7 +79,7 @@ export default function RouteTimeline({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Průběh trasy</CardTitle>
+        <CardTitle>Body na trase</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="relative">

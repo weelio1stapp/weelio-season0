@@ -104,7 +104,7 @@ export function RoutePointEditDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? "Upravit bod trasy" : "Přidat bod trasy"}
+            {isEdit ? "Upravit bod na trase" : "Přidat bod na trase"}
           </DialogTitle>
           <DialogDescription>
             {isEdit
@@ -127,10 +127,10 @@ export function RoutePointEditDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="START">Start</SelectItem>
+                  <SelectItem value="START">Začátek</SelectItem>
                   <SelectItem value="END">Cíl</SelectItem>
-                  <SelectItem value="CHECKPOINT">Checkpoint</SelectItem>
-                  <SelectItem value="POI">Bod zájmu</SelectItem>
+                  <SelectItem value="CHECKPOINT">Zastávka</SelectItem>
+                  <SelectItem value="POI">Zajímavé místo</SelectItem>
                   <SelectItem value="TREASURE">Poklad</SelectItem>
                 </SelectContent>
               </Select>

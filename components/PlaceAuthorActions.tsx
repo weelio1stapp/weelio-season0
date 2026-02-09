@@ -43,7 +43,7 @@ export default function PlaceAuthorActions({
       router.push("/places");
     } catch (err: any) {
       console.error("Delete error:", err);
-      setError(err.message || "Nepodařilo se smazat místo");
+      setError(err.message || "Nepodařilo se smazat trasu");
       setDeleting(false);
     }
   }
@@ -69,9 +69,9 @@ export default function PlaceAuthorActions({
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-2">Smazat místo?</h3>
+            <h3 className="text-lg font-semibold mb-2">Smazat trasu?</h3>
             <p className="text-sm opacity-80 mb-4">
-              Opravdu chceš smazat místo{" "}
+              Opravdu chceš smazat trasu{" "}
               <span className="font-semibold">"{placeName}"</span>? Tato akce
               je nevratná.
             </p>

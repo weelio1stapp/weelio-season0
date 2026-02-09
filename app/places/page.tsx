@@ -29,9 +29,9 @@ export default async function PlacesPage({ searchParams }: Props) {
     <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Místa</h1>
+          <h1 className="text-3xl font-bold">Trasy</h1>
           <p className="mt-2 text-sm opacity-80">
-            Reálná místa z databáze (MVP).
+            Prozkoumej trasy od ostatních autorů
           </p>
         </div>
 
@@ -39,7 +39,7 @@ export default async function PlacesPage({ searchParams }: Props) {
           href="/create-place"
           className="rounded-xl border px-4 py-2 text-sm hover:bg-black/5"
         >
-          + Přidat místo
+          + Vytvořit trasu
         </Link>
       </div>
 
@@ -55,7 +55,7 @@ export default async function PlacesPage({ searchParams }: Props) {
       {/* Results count */}
       <div className="mt-6">
         <p className="text-sm opacity-80">
-          Nalezeno <span className="font-semibold">{places.length}</span> míst
+          Nalezeno <span className="font-semibold">{places.length}</span> tras
         </p>
       </div>
 
@@ -63,7 +63,7 @@ export default async function PlacesPage({ searchParams }: Props) {
       {places.length === 0 ? (
         <div className="mt-4 rounded-2xl border p-6">
           <p className="text-sm opacity-80">
-            Žádná místa nevyhovují zvoleným filtrům. Zkus upravit kritéria nebo{" "}
+            Žádné trasy nevyhovují zvoleným filtrům. Zkus upravit kritéria nebo{" "}
             <Link href="/places" className="underline">
               resetovat filtry
             </Link>
