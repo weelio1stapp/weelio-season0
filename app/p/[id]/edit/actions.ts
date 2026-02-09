@@ -228,3 +228,146 @@ export async function updatePlaceAudioMetadata(
     };
   }
 }
+
+/**
+ * Upsert intro audio segment for a place
+ */
+export async function upsertIntroSegment(
+  placeId: string,
+  data: {
+    title: string | null;
+    script_text: string | null;
+    estimated_sec: number | null;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await getSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Musíš být přihlášený" };
+    }
+
+    // Verify ownership
+    const { data: place, error: fetchError } = await supabase
+      .from("places")
+      .select("author_id")
+      .eq("id", placeId)
+      .single();
+
+    if (fetchError || !place || place.author_id !== user.id) {
+      return { success: false, error: "Nemůžeš upravit cizí trasu" };
+    }
+
+    // Upsert intro segment
+    const { error: upsertError } = await supabase
+      .from("route_audio_segments")
+      .upsert(
+        {
+          place_id: placeId,
+          route_point_id: null,
+          segment_type: "intro",
+          title: data.title,
+          script_text: data.script_text,
+          estimated_sec: data.estimated_sec,
+          order_index: 0,
+        },
+        {
+          onConflict: "place_id",
+          ignoreDuplicates: false,
+        }
+      );
+
+    if (upsertError) {
+      console.error("Intro segment upsert error:", upsertError);
+      return { success: false, error: `Chyba při ukládání: ${upsertError.message}` };
+    }
+
+    revalidatePath(`/p/${placeId}`);
+    revalidatePath(`/p/${placeId}/edit`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Unexpected error in upsertIntroSegment:", error);
+    return { success: false, error: "Neočekávaná chyba" };
+  }
+}
+
+/**
+ * Upsert point audio segment for a specific route point
+ */
+export async function upsertPointSegment(
+  placeId: string,
+  routePointId: string,
+  data: {
+    script_text: string | null;
+    estimated_sec: number | null;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await getSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Musíš být přihlášený" };
+    }
+
+    // Verify ownership of the place
+    const { data: place, error: fetchError } = await supabase
+      .from("places")
+      .select("author_id")
+      .eq("id", placeId)
+      .single();
+
+    if (fetchError || !place || place.author_id !== user.id) {
+      return { success: false, error: "Nemůžeš upravit cizí trasu" };
+    }
+
+    // Verify route point belongs to this place
+    const { data: routePoint, error: pointError } = await supabase
+      .from("route_points")
+      .select("place_id, order_index")
+      .eq("id", routePointId)
+      .single();
+
+    if (pointError || !routePoint || routePoint.place_id !== placeId) {
+      return { success: false, error: "Bod nepatří k této trase" };
+    }
+
+    // Upsert point segment
+    const { error: upsertError } = await supabase
+      .from("route_audio_segments")
+      .upsert(
+        {
+          place_id: placeId,
+          route_point_id: routePointId,
+          segment_type: "point",
+          title: null,
+          script_text: data.script_text,
+          estimated_sec: data.estimated_sec,
+          order_index: routePoint.order_index,
+        },
+        {
+          onConflict: "route_point_id",
+          ignoreDuplicates: false,
+        }
+      );
+
+    if (upsertError) {
+      console.error("Point segment upsert error:", upsertError);
+      return { success: false, error: `Chyba při ukládání: ${upsertError.message}` };
+    }
+
+    revalidatePath(`/p/${placeId}`);
+    revalidatePath(`/p/${placeId}/edit`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Unexpected error in upsertPointSegment:", error);
+    return { success: false, error: "Neočekávaná chyba" };
+  }
+}

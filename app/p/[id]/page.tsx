@@ -8,6 +8,10 @@ import { getProfilesByIds } from "@/lib/db/profiles";
 import { getPublicRiddlesForPlace } from "@/lib/db/riddles";
 import { fetchRoutePoints } from "@/lib/db/route-points";
 import type { RoutePoint } from "@/lib/db/route-points";
+import {
+  fetchAudioSegments,
+  fetchIntroSegment,
+} from "@/lib/db/audio-segments";
 import PlaceAuthorActions from "@/components/PlaceAuthorActions";
 import PlaceRiddles from "@/components/place/PlaceRiddles";
 import PlaceHero from "./PlaceHero";
@@ -16,6 +20,7 @@ import PlaceOnSiteHint from "./PlaceOnSiteHint";
 import PlaceOnSiteActions from "./PlaceOnSiteActions";
 import PlaceCommunitySection from "./PlaceCommunitySection";
 import RouteSection from "@/components/routes/RouteSection";
+import AudioScriptViewer from "@/components/audio/AudioScriptViewer";
 import { Separator } from "@/components/ui/separator";
 import {
   Card,
@@ -49,12 +54,22 @@ export default async function PlaceDetailPage({
   // Check if user has visited today
   const alreadyVisited = currentUserId ? await hasVisitedToday(place.id) : false;
 
-  // Load journal entries, riddles, and route points
-  const [journalEntries, riddles, routePoints] = await Promise.all([
-    getPublicJournalEntriesForPlace(place.id, 10),
-    getPublicRiddlesForPlace(place.id),
-    fetchRoutePoints(place.id),
-  ]);
+  // Load journal entries, riddles, route points, and audio segments
+  const [journalEntries, riddles, routePoints, audioSegments, introSegment] =
+    await Promise.all([
+      getPublicJournalEntriesForPlace(place.id, 10),
+      getPublicRiddlesForPlace(place.id),
+      fetchRoutePoints(place.id),
+      fetchAudioSegments(place.id),
+      fetchIntroSegment(place.id),
+    ]);
+
+  // Create map of route_point_id -> audio segment
+  const pointSegmentsMap = new Map(
+    audioSegments
+      .filter((seg) => seg.segment_type === "point" && seg.route_point_id)
+      .map((seg) => [seg.route_point_id!, seg])
+  );
 
   // Batch load profiles for journal entries
   const userIds = journalEntries.map((entry) => entry.user_id);
@@ -338,6 +353,15 @@ export default async function PlaceDetailPage({
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Audio Script Viewer - read-only view of audio narration script */}
+      <div className="mb-6">
+        <AudioScriptViewer
+          introSegment={introSegment}
+          pointSegments={pointSegmentsMap}
+          routePoints={routePoints}
+        />
       </div>
 
       {/* C) PlaceOnSiteHint - Mental transition */}
