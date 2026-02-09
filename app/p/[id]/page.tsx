@@ -256,6 +256,82 @@ export default async function PlaceDetailPage({
       {/* Route Map & Timeline - with synchronized interaction */}
       <RouteSection points={routePoints} />
 
+      {/* Audio trasy */}
+      <div className="mb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Audio trasy</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {place.audio_status === "missing" &&
+            !place.audio_public_url &&
+            !place.audio_duration_sec &&
+            !place.audio_note ? (
+              <p className="text-muted-foreground text-center py-4">
+                Audio k této trase zatím není připravené.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {/* Status badge */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">Status:</span>
+                  <Badge
+                    variant={
+                      place.audio_status === "ready"
+                        ? "default"
+                        : place.audio_status === "draft"
+                        ? "outline"
+                        : "secondary"
+                    }
+                  >
+                    {place.audio_status === "ready"
+                      ? "Připraveno"
+                      : place.audio_status === "draft"
+                      ? "Rozpracované"
+                      : "Chybí"}
+                  </Badge>
+                </div>
+
+                {/* Audio URL */}
+                {place.audio_public_url && (
+                  <div>
+                    <span className="text-sm font-medium">Odkaz: </span>
+                    <a
+                      href={place.audio_public_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      {place.audio_public_url}
+                    </a>
+                  </div>
+                )}
+
+                {/* Duration */}
+                {place.audio_duration_sec && place.audio_duration_sec > 0 && (
+                  <div>
+                    <span className="text-sm font-medium">Délka: </span>
+                    <span className="text-sm">
+                      {Math.floor(place.audio_duration_sec / 60)}:
+                      {String(place.audio_duration_sec % 60).padStart(2, "0")}
+                    </span>
+                  </div>
+                )}
+
+                {/* Note */}
+                {place.audio_note && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {place.audio_note}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* C) PlaceOnSiteHint - Mental transition */}
       <div className="mb-6">
         <PlaceOnSiteHint />

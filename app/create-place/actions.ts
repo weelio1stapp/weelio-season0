@@ -42,6 +42,10 @@ export async function createPlaceAction(
     route_name: formData.get("route_name"),
     route_title: formData.get("route_title"),
     route_description: formData.get("route_description"),
+    audio_public_url: formData.get("audio_public_url"),
+    audio_duration_sec: formData.get("audio_duration_sec"),
+    audio_status: formData.get("audio_status"),
+    audio_note: formData.get("audio_note"),
   };
 
   const result = createPlaceSchema.safeParse(rawData);
@@ -89,6 +93,10 @@ export async function createPlaceAction(
     route_name: validData.route_name || null,
     route_title: validData.route_title || validData.name, // fallback na name
     route_description: validData.route_description || null,
+    audio_public_url: validData.audio_public_url || null,
+    audio_duration_sec: validData.audio_duration_sec || null,
+    audio_status: validData.audio_status || "missing",
+    audio_note: validData.audio_note || null,
   });
 
   if (error) {

@@ -76,6 +76,33 @@ export const createPlaceSchema = z.object({
     .string()
     .max(500, "Popis trasy je příliš dlouhý (max 500 znaků)")
     .optional(),
+
+  // Audio route metadata (all optional)
+  audio_storage_path: z.string().optional().nullable(),
+
+  audio_public_url: z
+    .string()
+    .url("Musí být platná URL adresa")
+    .optional()
+    .or(z.literal("")),
+
+  audio_duration_sec: z.coerce
+    .number()
+    .int("Musí být celé číslo")
+    .min(1, "Minimálně 1 sekunda")
+    .optional()
+    .nullable(),
+
+  audio_status: z
+    .enum(["draft", "ready", "missing"], {
+      message: "Vyber platný status",
+    })
+    .optional(),
+
+  audio_note: z
+    .string()
+    .max(300, "Poznámka je příliš dlouhá (max 300 znaků)")
+    .optional(),
 });
 
 export type CreatePlaceInput = z.infer<typeof createPlaceSchema>;

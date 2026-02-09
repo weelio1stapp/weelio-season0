@@ -84,6 +84,32 @@ This document serves as the **source of truth** for database column names in the
 - resolved_at (timestamp with time zone)
 - action_taken (text)
 
+## places
+
+- id (uuid)
+- name (text)
+- type (text)
+- time_min (integer)
+- difficulty (integer)
+- why (text)
+- start_lat (double precision)
+- start_lng (double precision)
+- end_lat (double precision)
+- end_lng (double precision)
+- area (text)
+- author_id (uuid)
+- created_at (timestamp with time zone)
+- cover_storage_path (text)
+- cover_public_url (text)
+- route_title (text)
+- route_description (text)
+- route_name (text)
+- audio_storage_path (text)
+- audio_public_url (text)
+- audio_duration_sec (integer)
+- audio_status (text) - default: 'missing', allowed: 'draft' | 'ready' | 'missing'
+- audio_note (text)
+
 ## place_media
 
 - id (uuid)

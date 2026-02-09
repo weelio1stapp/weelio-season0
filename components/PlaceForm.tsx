@@ -367,6 +367,112 @@ export default function PlaceForm({
         </div>
       </div>
 
+      {/* SEKCE: AUDIO TRASY */}
+      <div className="space-y-6">
+        <div className="border-b pb-2">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+            Audio trasy
+          </h3>
+          <p className="text-sm text-[var(--text-secondary)] mt-1">
+            Příprava – přehrávání doplníme později.
+          </p>
+        </div>
+
+        {/* Audio Status */}
+        <div>
+          <label
+            htmlFor="audio_status"
+            className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
+          >
+            Status
+          </label>
+          <select
+            id="audio_status"
+            name="audio_status"
+            disabled={isPending}
+            defaultValue={initialData?.audio_status || "missing"}
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="missing">Chybí</option>
+            <option value="draft">Rozpracované</option>
+            <option value="ready">Připraveno</option>
+          </select>
+          {errors.audio_status && (
+            <p className="mt-1 text-sm text-red-600">{errors.audio_status}</p>
+          )}
+        </div>
+
+        {/* Audio Public URL */}
+        <div>
+          <label
+            htmlFor="audio_public_url"
+            className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
+          >
+            Odkaz na audio (URL)
+          </label>
+          <input
+            type="text"
+            id="audio_public_url"
+            name="audio_public_url"
+            disabled={isPending}
+            defaultValue={initialData?.audio_public_url || ""}
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="např. https://..."
+          />
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
+            Zatím jen uložíme odkaz. Přehrávač doplníme později.
+          </p>
+          {errors.audio_public_url && (
+            <p className="mt-1 text-sm text-red-600">{errors.audio_public_url}</p>
+          )}
+        </div>
+
+        {/* Audio Duration */}
+        <div>
+          <label
+            htmlFor="audio_duration_sec"
+            className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
+          >
+            Délka (sekundy)
+          </label>
+          <input
+            type="number"
+            id="audio_duration_sec"
+            name="audio_duration_sec"
+            disabled={isPending}
+            min="1"
+            defaultValue={initialData?.audio_duration_sec || ""}
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="např. 420"
+          />
+          {errors.audio_duration_sec && (
+            <p className="mt-1 text-sm text-red-600">{errors.audio_duration_sec}</p>
+          )}
+        </div>
+
+        {/* Audio Note */}
+        <div>
+          <label
+            htmlFor="audio_note"
+            className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
+          >
+            Poznámka pro posluchače
+          </label>
+          <textarea
+            id="audio_note"
+            name="audio_note"
+            disabled={isPending}
+            rows={2}
+            defaultValue={initialData?.audio_note || ""}
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="např. Pusť si před startem, je tam orientace."
+          />
+          {errors.audio_note && (
+            <p className="mt-1 text-sm text-red-600">{errors.audio_note}</p>
+          )}
+        </div>
+      </div>
+
       {/* Submit Button */}
       <div className="pt-4">
         <Button

@@ -39,6 +39,13 @@ export type PlaceRow = {
   route_title?: string | null;
   route_description?: string | null;
   route_name?: string | null; // Autorský název trasy (oddělený od destinace)
+
+  // Audio route metadata
+  audio_storage_path?: string | null;
+  audio_public_url?: string | null;
+  audio_duration_sec?: number | null;
+  audio_status?: "draft" | "ready" | "missing";
+  audio_note?: string | null;
 };
 
 export async function fetchPlaces(): Promise<PlaceRow[]> {
