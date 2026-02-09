@@ -12,6 +12,7 @@ import {
   fetchAudioSegments,
   fetchIntroSegment,
 } from "@/lib/db/audio-segments";
+import { getAudioScriptStatus } from "@/lib/audio/audioScriptStatus";
 import PlaceAuthorActions from "@/components/PlaceAuthorActions";
 import PlaceRiddles from "@/components/place/PlaceRiddles";
 import PlaceHero from "./PlaceHero";
@@ -21,6 +22,7 @@ import PlaceOnSiteActions from "./PlaceOnSiteActions";
 import PlaceCommunitySection from "./PlaceCommunitySection";
 import RouteSection from "@/components/routes/RouteSection";
 import AudioScriptViewer from "@/components/audio/AudioScriptViewer";
+import AudioScriptStatusCard from "@/components/audio/AudioScriptStatusCard";
 import { Separator } from "@/components/ui/separator";
 import {
   Card,
@@ -54,15 +56,22 @@ export default async function PlaceDetailPage({
   // Check if user has visited today
   const alreadyVisited = currentUserId ? await hasVisitedToday(place.id) : false;
 
-  // Load journal entries, riddles, route points, and audio segments
-  const [journalEntries, riddles, routePoints, audioSegments, introSegment] =
-    await Promise.all([
-      getPublicJournalEntriesForPlace(place.id, 10),
-      getPublicRiddlesForPlace(place.id),
-      fetchRoutePoints(place.id),
-      fetchAudioSegments(place.id),
-      fetchIntroSegment(place.id),
-    ]);
+  // Load journal entries, riddles, route points, audio segments, and script status
+  const [
+    journalEntries,
+    riddles,
+    routePoints,
+    audioSegments,
+    introSegment,
+    audioScriptStatus,
+  ] = await Promise.all([
+    getPublicJournalEntriesForPlace(place.id, 10),
+    getPublicRiddlesForPlace(place.id),
+    fetchRoutePoints(place.id),
+    fetchAudioSegments(place.id),
+    fetchIntroSegment(place.id),
+    getAudioScriptStatus(place.id),
+  ]);
 
   // Create map of route_point_id -> audio segment
   const pointSegmentsMap = new Map(
@@ -363,6 +372,17 @@ export default async function PlaceDetailPage({
           routePoints={routePoints}
         />
       </div>
+
+      {/* Audio Script Status - quality checklist */}
+      {(audioScriptStatus.status !== "empty" || isAuthor) && (
+        <div className="mb-6">
+          <AudioScriptStatusCard
+            placeId={place.id}
+            statusData={audioScriptStatus}
+            isAuthor={isAuthor}
+          />
+        </div>
+      )}
 
       {/* C) PlaceOnSiteHint - Mental transition */}
       <div className="mb-6">

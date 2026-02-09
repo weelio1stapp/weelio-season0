@@ -4,6 +4,7 @@ import { parseSearchParams } from "@/lib/placesFilters";
 import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
 import PlacesFilters from "./PlacesFilters";
 import { PLACE_TYPE_LABELS } from "@/lib/placesFilters";
+import { getBatchAudioScriptStatus } from "@/lib/audio/audioScriptStatus";
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -24,6 +25,10 @@ export default async function PlacesPage({ searchParams }: Props) {
 
   // Get available areas for dropdown
   const availableAreas = await getAvailableAreas();
+
+  // Get audio script statuses for all places
+  const placeIds = places.map((p) => p.id);
+  const audioScriptStatuses = await getBatchAudioScriptStatus(placeIds);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
@@ -72,20 +77,55 @@ export default async function PlacesPage({ searchParams }: Props) {
         </div>
       ) : (
         <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {places.map((p) => (
-            <div key={p.id} className="rounded-2xl border overflow-hidden">
-              {/* Cover image */}
-              {p.cover_public_url && (
-                <div className="w-full aspect-video bg-gray-100">
-                  <img
-                    src={p.cover_public_url}
-                    alt={p.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
+          {places.map((p) => {
+            const scriptStatus = audioScriptStatuses.get(p.id);
+            const scriptStatusConfig = {
+              complete: {
+                emoji: "🟢",
+                label: "Audio kompletní",
+                color: "bg-green-100 text-green-800 border-green-300",
+              },
+              partial: {
+                emoji: "🟡",
+                label: "Audio rozpracované",
+                color: "bg-yellow-100 text-yellow-800 border-yellow-300",
+              },
+              empty: {
+                emoji: "🔴",
+                label: "Bez audia",
+                color: "bg-red-100 text-red-800 border-red-300",
+              },
+            };
+            const statusConfig = scriptStatus
+              ? scriptStatusConfig[scriptStatus.status]
+              : null;
 
-              <div className="p-5">
+            return (
+              <div key={p.id} className="rounded-2xl border overflow-hidden relative">
+                {/* Audio script status badge in corner */}
+                {statusConfig && (
+                  <div className="absolute top-3 right-3 z-10">
+                    <div
+                      className={`rounded-full border px-2 py-1 text-xs font-medium ${statusConfig.color} shadow-sm`}
+                      title={statusConfig.label}
+                    >
+                      {statusConfig.emoji}
+                    </div>
+                  </div>
+                )}
+
+                {/* Cover image */}
+                {p.cover_public_url && (
+                  <div className="w-full aspect-video bg-gray-100">
+                    <img
+                      src={p.cover_public_url}
+                      alt={p.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                <div className="p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="text-lg font-semibold">{p.name}</h3>
@@ -130,8 +170,9 @@ export default async function PlacesPage({ searchParams }: Props) {
                   </Link>
                 </div>
               </div>
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
     </main>
