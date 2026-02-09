@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Button from "@/components/Button";
 import type { PlaceRow } from "@/lib/db/places";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserClient";
+import { updatePlaceAudioMetadata } from "@/app/p/[id]/edit/actions";
 
 const PLACE_TYPES = [
   { value: "other", label: "Jiné" },
@@ -38,6 +40,12 @@ export default function PlaceForm({
 }: Props) {
   const [state, formAction, isPending] = useActionState(action, initialState);
 
+  // Audio upload state (only used in edit mode)
+  const [selectedAudioFile, setSelectedAudioFile] = useState<File | null>(null);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+
   const errors = state?.errors || {};
   const generalError = state?.message;
 
@@ -45,6 +53,87 @@ export default function PlaceForm({
   const formatCoords = (lat?: number, lng?: number) => {
     if (lat === undefined || lng === undefined) return "";
     return `${lat}, ${lng}`;
+  };
+
+  // Handler for audio file upload
+  const handleAudioUpload = async () => {
+    if (!selectedAudioFile || !initialData?.id) return;
+
+    setIsUploadingAudio(true);
+    setUploadError(null);
+    setUploadSuccess(false);
+
+    try {
+      // 1. Extract audio duration
+      const duration = await getAudioDuration(selectedAudioFile);
+
+      // 2. Upload to Supabase Storage
+      const supabase = getSupabaseBrowserClient();
+      const fileExt = selectedAudioFile.name.split(".").pop() || "mp3";
+      const filePath = `${initialData.id}/route-audio.${fileExt}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("route-audio")
+        .upload(filePath, selectedAudioFile, {
+          cacheControl: "3600",
+          upsert: true, // Overwrite if exists
+        });
+
+      if (uploadError) {
+        throw new Error(`Chyba při nahrávání: ${uploadError.message}`);
+      }
+
+      // 3. Get public URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("route-audio").getPublicUrl(filePath);
+
+      // 4. Update place metadata via server action
+      const result = await updatePlaceAudioMetadata(initialData.id, {
+        audio_storage_path: filePath,
+        audio_public_url: publicUrl,
+        audio_duration_sec: Math.round(duration),
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || "Chyba při ukládání metadat");
+      }
+
+      setUploadSuccess(true);
+      setSelectedAudioFile(null);
+
+      // Reload page to show updated data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error("Audio upload error:", error);
+      setUploadError(
+        error instanceof Error ? error.message : "Neočekávaná chyba"
+      );
+    } finally {
+      setIsUploadingAudio(false);
+    }
+  };
+
+  // Helper to extract audio duration
+  const getAudioDuration = (file: File): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      const audio = document.createElement("audio");
+      const objectUrl = URL.createObjectURL(file);
+
+      audio.addEventListener("loadedmetadata", () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(audio.duration);
+      });
+
+      audio.addEventListener("error", () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("Nepodařilo se načíst audio soubor"));
+      });
+
+      audio.src = objectUrl;
+    });
   };
 
   return (
@@ -368,7 +457,7 @@ export default function PlaceForm({
       </div>
 
       {/* SEKCE: AUDIO TRASY */}
-      <div className="space-y-6">
+      <div id="audio" className="space-y-6">
         <div className="border-b pb-2">
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
             Audio trasy
@@ -377,6 +466,65 @@ export default function PlaceForm({
             Příprava – přehrávání doplníme později.
           </p>
         </div>
+
+        {/* Audio Upload - only show in edit mode */}
+        {initialData && (
+          <div className="rounded-lg border-2 border-dashed border-gray-300 p-6 space-y-4">
+            <div>
+              <label
+                htmlFor="audio_file"
+                className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
+              >
+                Nahrát audio trasy
+              </label>
+              <input
+                type="file"
+                id="audio_file"
+                accept="audio/mpeg,audio/mp4,audio/wav"
+                disabled={isUploadingAudio || isPending}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  setSelectedAudioFile(file || null);
+                  setUploadError(null);
+                  setUploadSuccess(false);
+                }}
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                Audio průvodce k trase (mp3, m4a, wav)
+              </p>
+            </div>
+
+            {selectedAudioFile && (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-[var(--text-secondary)]">
+                  Vybraný soubor: {selectedAudioFile.name}
+                </span>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleAudioUpload}
+                  disabled={isUploadingAudio || isPending}
+                  className="ml-auto"
+                >
+                  {isUploadingAudio ? "Nahrávám..." : "Nahrát audio"}
+                </Button>
+              </div>
+            )}
+
+            {uploadError && (
+              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
+                {uploadError}
+              </div>
+            )}
+
+            {uploadSuccess && (
+              <div className="rounded-lg bg-green-50 p-3 text-sm text-green-800">
+                Audio bylo úspěšně nahráno! Stránka se za chvíli obnoví...
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Audio Status */}
         <div>

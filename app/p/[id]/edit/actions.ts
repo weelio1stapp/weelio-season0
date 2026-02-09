@@ -146,3 +146,85 @@ export async function updatePlaceAction(
   revalidatePath("/places");
   redirect(`/p/${placeId}`);
 }
+
+/**
+ * Update only audio metadata for a place
+ * Called after successful audio upload to Supabase Storage
+ */
+export async function updatePlaceAudioMetadata(
+  placeId: string,
+  audioData: {
+    audio_storage_path: string;
+    audio_public_url: string;
+    audio_duration_sec: number;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // 1. Get authenticated user
+    const supabase = await getSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return {
+        success: false,
+        error: "Musíš být přihlášený",
+      };
+    }
+
+    // 2. Verify ownership
+    const { data: place, error: fetchError } = await supabase
+      .from("places")
+      .select("author_id")
+      .eq("id", placeId)
+      .single();
+
+    if (fetchError || !place) {
+      return {
+        success: false,
+        error: "Trasa nebyla nalezena",
+      };
+    }
+
+    if (place.author_id !== user.id) {
+      return {
+        success: false,
+        error: "Nemůžeš upravit cizí trasu",
+      };
+    }
+
+    // 3. Update audio metadata
+    const { error: updateError } = await supabase
+      .from("places")
+      .update({
+        audio_storage_path: audioData.audio_storage_path,
+        audio_public_url: audioData.audio_public_url,
+        audio_duration_sec: audioData.audio_duration_sec,
+        audio_status: "ready",
+      })
+      .eq("id", placeId)
+      .eq("author_id", user.id);
+
+    if (updateError) {
+      console.error("Audio metadata update error:", updateError);
+      return {
+        success: false,
+        error: `Chyba při ukládání metadat: ${updateError.message}`,
+      };
+    }
+
+    // 4. Revalidate cache
+    revalidatePath(`/p/${placeId}`);
+    revalidatePath(`/p/${placeId}/edit`);
+    revalidatePath("/places");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Unexpected error in updatePlaceAudioMetadata:", error);
+    return {
+      success: false,
+      error: "Neočekávaná chyba při ukládání",
+    };
+  }
+}

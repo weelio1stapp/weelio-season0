@@ -259,8 +259,16 @@ export default async function PlaceDetailPage({
       {/* Audio trasy */}
       <div className="mb-6">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Audio trasy</CardTitle>
+            {isAuthor && (
+              <Link
+                href={`/p/${place.id}/edit#audio`}
+                className="text-sm text-primary hover:underline"
+              >
+                Nahrát / změnit audio
+              </Link>
+            )}
           </CardHeader>
           <CardContent>
             {place.audio_status === "missing" &&
