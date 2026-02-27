@@ -103,7 +103,7 @@ export default async function WeeklyPlannedRuns() {
                   Hotovo (naplánováno dopředu)
                 </h4>
                 <p className="text-xs text-muted-foreground">
-                  Označeno jako splněné, čeká na datum běhu.
+                  Označeno jako splněné. Po dosažení data se běh vytvoří automaticky při další návštěvě.
                 </p>
                 {doneFuturePlans.map((plan) => {
                   const placeName =

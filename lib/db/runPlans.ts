@@ -98,3 +98,25 @@ export async function fetchMyPlannedRunsInDateRangeAll(
 
   return (data ?? []) as UserRunPlan[];
 }
+
+/**
+ * Materialize due done-future run plans into actual runs
+ * Converts plans marked as done (with future dates) into user_runs rows
+ * when their planned_at date has passed
+ * @returns Number of runs created (0 on error or if not authenticated)
+ */
+export async function materializeMyDueDoneFuturePlans(): Promise<number> {
+  const supabase = await getSupabaseServerClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return 0;
+
+  const { data, error } = await supabase.rpc("materialize_my_due_done_future_run_plans");
+
+  if (error) {
+    console.error("materializeMyDueDoneFuturePlans error:", error);
+    return 0;
+  }
+
+  return (data as number) ?? 0;
+}

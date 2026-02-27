@@ -14,7 +14,10 @@ import {
 } from "@/lib/db/audio-segments";
 import { getAudioScriptStatus } from "@/lib/audio/audioScriptStatus";
 import { fetchMyRunsForPlace } from "@/lib/db/runs";
-import { fetchMyPlannedRunsForPlace } from "@/lib/db/runPlans";
+import {
+  fetchMyPlannedRunsForPlace,
+  materializeMyDueDoneFuturePlans,
+} from "@/lib/db/runPlans";
 import PlaceAuthorActions from "@/components/PlaceAuthorActions";
 import PlaceRiddles from "@/components/place/PlaceRiddles";
 import PlaceHero from "./PlaceHero";
@@ -61,6 +64,11 @@ export default async function PlaceDetailPage({
 
   // Check if user has visited today
   const alreadyVisited = currentUserId ? await hasVisitedToday(place.id) : false;
+
+  // Materialize any due done-future run plans into actual runs (if user is logged in)
+  if (currentUserId) {
+    await materializeMyDueDoneFuturePlans();
+  }
 
   // Load journal entries, riddles, route points, audio segments, script status, user runs, and planned runs
   const [

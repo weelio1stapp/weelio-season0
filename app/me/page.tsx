@@ -20,7 +20,10 @@ import {
 } from "@/lib/db/journal";
 import { fetchMyActiveGoal, fetchMyGoalById } from "@/lib/db/goals";
 import { fetchMyRunsInDateRange } from "@/lib/db/runs";
-import { fetchMyPlannedRunsInDateRangeAll } from "@/lib/db/runPlans";
+import {
+  fetchMyPlannedRunsInDateRangeAll,
+  materializeMyDueDoneFuturePlans,
+} from "@/lib/db/runPlans";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import StatsCards from "@/components/profile/StatsCards";
 import TabsSection from "@/components/profile/TabsSection";
@@ -49,6 +52,10 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
   }
 
   const userId = user.id;
+
+  // Materialize any due done-future run plans into actual runs
+  // This happens before data fetching to ensure data is up-to-date
+  await materializeMyDueDoneFuturePlans();
 
   // Fetch profile and stats in parallel
   const [

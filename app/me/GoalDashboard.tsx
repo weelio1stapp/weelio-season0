@@ -330,7 +330,7 @@ export default function GoalDashboard({
                 Hotovo (naplánováno dopředu)
               </h3>
               <p className="text-xs text-muted-foreground mb-3">
-                Tyto běhy byly označeny jako splněné, ale ještě neproběhly. Běh se vytvoří automaticky až v den plánovaného běhu.
+                Tyto běhy byly označeny jako splněné, ale ještě neproběhly. Po dosažení data se běh vytvoří automaticky při další návštěvě aplikace (profil / detail trasy).
               </p>
               <div className="space-y-2">
                 {plannedRunsDoneFuture.map((plan) => {
