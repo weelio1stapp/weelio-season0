@@ -50,11 +50,12 @@ export default function GoalDashboard({ goal, runs }: GoalDashboardProps) {
   });
 
   // Convert to percentages for UI
-  const kmPct = progress.kmPct * 100;
-  const runsPct = progress.runsPct * 100;
-  const planPct = progress.planPct * 100;
-  const totalKm = progress.totalKm;
-  const totalRuns = progress.totalRuns;
+  // For upcoming goals, always show 0 progress (runs don't count until goal starts)
+  const kmPct = progress.goalPhase === "upcoming" ? 0 : progress.kmPct * 100;
+  const runsPct = progress.goalPhase === "upcoming" ? 0 : progress.runsPct * 100;
+  const planPct = progress.goalPhase === "upcoming" ? 0 : progress.planPct * 100;
+  const totalKm = progress.goalPhase === "upcoming" ? 0 : progress.totalKm;
+  const totalRuns = progress.goalPhase === "upcoming" ? 0 : progress.totalRuns;
 
   // Map status to badge
   let statusBadge: {
@@ -285,9 +286,15 @@ export default function GoalDashboard({ goal, runs }: GoalDashboardProps) {
         <div>
           <h3 className="text-sm font-semibold mb-3">
             {progress.goalPhase === "upcoming"
-              ? "Běhy v období cíle"
+              ? "Záznamy v budoucím období"
               : "Posledních 5 běhů v období"}
           </h3>
+          {progress.goalPhase === "upcoming" && runs.length > 0 && (
+            <p className="text-xs text-muted-foreground mb-3">
+              Tyto běhy se nezapočítávají do progrese, dokud cíl nezačne (
+              {new Date(goal.period_start).toLocaleDateString("cs-CZ")}).
+            </p>
+          )}
           {runs.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               {progress.goalPhase === "upcoming"
