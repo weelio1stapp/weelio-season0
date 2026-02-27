@@ -69,3 +69,29 @@ export async function fetchMyGoals(): Promise<UserGoal[]> {
 
   return (data ?? []) as UserGoal[];
 }
+
+/**
+ * Fetch a specific goal by ID (only if belongs to auth user)
+ */
+export async function fetchMyGoalById(id: string): Promise<UserGoal | null> {
+  const supabase = await getSupabaseServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("user_goals")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("fetchMyGoalById error:", error);
+    return null;
+  }
+
+  return data as UserGoal | null;
+}

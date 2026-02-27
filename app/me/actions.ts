@@ -101,3 +101,30 @@ export async function createMyRunGoal(formData: FormData) {
   revalidatePath("/me");
   return { success: true };
 }
+
+export async function deactivateMyActiveRunGoal() {
+  const supabase = await getSupabaseServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "Musíš být přihlášený" };
+  }
+
+  // Deactivate active run_distance goals
+  const { error } = await supabase
+    .from("user_goals")
+    .update({ is_active: false })
+    .eq("user_id", user.id)
+    .eq("is_active", true)
+    .eq("type", "run_distance");
+
+  if (error) {
+    console.error("Deactivate goal error:", error);
+    return { success: false, error: "Chyba při ukončování cíle" };
+  }
+
+  revalidatePath("/me");
+  return { success: true };
+}

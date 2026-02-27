@@ -18,16 +18,23 @@ import {
   getMyJournalEntries,
   getPlaceNamesByIds,
 } from "@/lib/db/journal";
-import { fetchMyActiveGoal } from "@/lib/db/goals";
+import { fetchMyActiveGoal, fetchMyGoalById } from "@/lib/db/goals";
 import { fetchMyRunsInRange } from "@/lib/db/runs";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import StatsCards from "@/components/profile/StatsCards";
 import TabsSection from "@/components/profile/TabsSection";
 import GoalDashboard from "./GoalDashboard";
+import GoalsHistory from "./GoalsHistory";
 
 export const dynamic = "force-dynamic";
 
-export default async function MyProfilePage() {
+type PageProps = {
+  searchParams: Promise<{ goalId?: string }>;
+};
+
+export default async function MyProfilePage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const goalId = params.goalId;
   // Check authentication
   const supabase = await getSupabaseServerClient();
   const {
@@ -41,7 +48,7 @@ export default async function MyProfilePage() {
 
   const userId = user.id;
 
-  // Fetch profile, stats, and goal in parallel
+  // Fetch profile and stats in parallel
   const [
     profile,
     authorStats,
@@ -51,7 +58,6 @@ export default async function MyProfilePage() {
     challenges,
     userProgress,
     journalEntries,
-    activeGoal,
   ] = await Promise.all([
     getProfileById(userId),
     getAuthorStats(userId, 30),
@@ -61,15 +67,28 @@ export default async function MyProfilePage() {
     getActiveChallenges(),
     getUserProgress(),
     getMyJournalEntries(30),
-    fetchMyActiveGoal(),
   ]);
 
-  // Fetch runs for active goal period
+  // Determine which goal to display
+  let displayedGoal: Awaited<ReturnType<typeof fetchMyActiveGoal>> = null;
+  if (goalId) {
+    // Try to fetch specific goal by ID
+    displayedGoal = await fetchMyGoalById(goalId);
+    // If not found, fallback to active goal
+    if (!displayedGoal) {
+      displayedGoal = await fetchMyActiveGoal();
+    }
+  } else {
+    // Default to active goal
+    displayedGoal = await fetchMyActiveGoal();
+  }
+
+  // Fetch runs for displayed goal period
   let goalRuns: Awaited<ReturnType<typeof fetchMyRunsInRange>> = [];
-  if (activeGoal) {
-    const startOfDay = new Date(activeGoal.period_start);
+  if (displayedGoal) {
+    const startOfDay = new Date(displayedGoal.period_start);
     startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(activeGoal.period_end);
+    const endOfDay = new Date(displayedGoal.period_end);
     endOfDay.setHours(23, 59, 59, 999);
 
     goalRuns = await fetchMyRunsInRange(
@@ -143,7 +162,12 @@ export default async function MyProfilePage() {
 
       {/* Goal Dashboard */}
       <div className="mb-8">
-        <GoalDashboard goal={activeGoal} runs={goalRuns} />
+        <GoalDashboard goal={displayedGoal} runs={goalRuns} />
+      </div>
+
+      {/* Goals History */}
+      <div className="mb-8">
+        <GoalsHistory currentGoalId={displayedGoal?.id} />
       </div>
 
       {/* Stats Cards */}

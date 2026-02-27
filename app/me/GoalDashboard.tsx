@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import type { UserGoal } from "@/lib/db/goals";
 import type { UserRun } from "@/lib/db/runs";
 import CreateGoalDialog from "./CreateGoalDialog";
+import DeactivateGoalButton from "./DeactivateGoalButton";
 
 type GoalDashboardProps = {
   goal: UserGoal | null;
@@ -76,9 +77,24 @@ export default function GoalDashboard({ goal, runs }: GoalDashboardProps) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Projekt Krysa 🐀</CardTitle>
-        <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
+      <CardHeader>
+        <div className="flex flex-row items-center justify-between">
+          <CardTitle>Projekt Krysa 🐀</CardTitle>
+          <div className="flex items-center gap-2">
+            <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
+            <CreateGoalDialog
+              triggerLabel="Změnit cíl"
+              existingGoal={{
+                period_start: goal.period_start,
+                period_end: goal.period_end,
+                target_distance_km: goal.target_distance_km,
+                target_runs: goal.target_runs,
+                plan_total_runs: goal.plan_total_runs,
+              }}
+            />
+            <DeactivateGoalButton />
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Period info */}
