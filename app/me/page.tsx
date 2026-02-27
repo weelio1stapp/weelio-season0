@@ -20,6 +20,7 @@ import {
 } from "@/lib/db/journal";
 import { fetchMyActiveGoal, fetchMyGoalById } from "@/lib/db/goals";
 import { fetchMyRunsInDateRange } from "@/lib/db/runs";
+import { fetchMyPlannedRunsInDateRange } from "@/lib/db/runPlans";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import StatsCards from "@/components/profile/StatsCards";
 import TabsSection from "@/components/profile/TabsSection";
@@ -83,13 +84,20 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
     displayedGoal = await fetchMyActiveGoal();
   }
 
-  // Fetch runs for displayed goal period (timezone-proof date filtering)
+  // Fetch runs and planned runs for displayed goal period (timezone-proof date filtering)
   let goalRuns: Awaited<ReturnType<typeof fetchMyRunsInDateRange>> = [];
+  let goalPlannedRuns: Awaited<ReturnType<typeof fetchMyPlannedRunsInDateRange>> = [];
   if (displayedGoal) {
-    goalRuns = await fetchMyRunsInDateRange(
-      displayedGoal.period_start,
-      displayedGoal.period_end
-    );
+    [goalRuns, goalPlannedRuns] = await Promise.all([
+      fetchMyRunsInDateRange(
+        displayedGoal.period_start,
+        displayedGoal.period_end
+      ),
+      fetchMyPlannedRunsInDateRange(
+        displayedGoal.period_start,
+        displayedGoal.period_end
+      ),
+    ]);
   }
 
   // Batch load place names for journal entries
@@ -157,7 +165,7 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
 
       {/* Goal Dashboard */}
       <div className="mb-8">
-        <GoalDashboard goal={displayedGoal} runs={goalRuns} />
+        <GoalDashboard goal={displayedGoal} runs={goalRuns} plannedRuns={goalPlannedRuns} />
       </div>
 
       {/* Goals History */}

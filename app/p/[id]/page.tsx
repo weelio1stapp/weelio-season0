@@ -14,6 +14,7 @@ import {
 } from "@/lib/db/audio-segments";
 import { getAudioScriptStatus } from "@/lib/audio/audioScriptStatus";
 import { fetchMyRunsForPlace } from "@/lib/db/runs";
+import { fetchMyPlannedRunsForPlace } from "@/lib/db/runPlans";
 import PlaceAuthorActions from "@/components/PlaceAuthorActions";
 import PlaceRiddles from "@/components/place/PlaceRiddles";
 import PlaceHero from "./PlaceHero";
@@ -25,6 +26,8 @@ import RouteSection from "@/components/routes/RouteSection";
 import AudioScriptViewer from "@/components/audio/AudioScriptViewer";
 import AudioScriptStatusCard from "@/components/audio/AudioScriptStatusCard";
 import RecordRunDialog from "./RecordRunDialog";
+import PlanRunDialog from "./PlanRunDialog";
+import PlannedRunCard from "./PlannedRunCard";
 import { Separator } from "@/components/ui/separator";
 import {
   Card,
@@ -58,7 +61,7 @@ export default async function PlaceDetailPage({
   // Check if user has visited today
   const alreadyVisited = currentUserId ? await hasVisitedToday(place.id) : false;
 
-  // Load journal entries, riddles, route points, audio segments, script status, and user runs
+  // Load journal entries, riddles, route points, audio segments, script status, user runs, and planned runs
   const [
     journalEntries,
     riddles,
@@ -67,6 +70,7 @@ export default async function PlaceDetailPage({
     introSegment,
     audioScriptStatus,
     myRuns,
+    myPlannedRuns,
   ] = await Promise.all([
     getPublicJournalEntriesForPlace(place.id, 10),
     getPublicRiddlesForPlace(place.id),
@@ -75,6 +79,7 @@ export default async function PlaceDetailPage({
     fetchIntroSegment(place.id),
     getAudioScriptStatus(place.id),
     fetchMyRunsForPlace(place.id, 10),
+    fetchMyPlannedRunsForPlace(place.id, 10),
   ]);
 
   // Create map of route_point_id -> audio segment
@@ -277,6 +282,31 @@ export default async function PlaceDetailPage({
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Plánované běhy na této trase */}
+      {currentUserId && (
+        <div className="mb-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Plánované běhy na této trase</CardTitle>
+              <PlanRunDialog placeId={place.id} />
+            </CardHeader>
+            <CardContent>
+              {myPlannedRuns.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Zatím žádný plánovaný běh.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {myPlannedRuns.map((plan) => (
+                    <PlannedRunCard key={plan.id} plan={plan} />
+                  ))}
                 </div>
               )}
             </CardContent>

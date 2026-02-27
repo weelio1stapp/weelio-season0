@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { UserGoal } from "@/lib/db/goals";
 import type { UserRun } from "@/lib/db/runs";
+import type { UserRunPlan } from "@/lib/db/runPlans";
 import { computeGoalProgress } from "@/lib/goals/goalProgress";
 import CreateGoalDialog from "./CreateGoalDialog";
 import DeactivateGoalButton from "./DeactivateGoalButton";
@@ -16,9 +17,10 @@ import DeactivateGoalButton from "./DeactivateGoalButton";
 type GoalDashboardProps = {
   goal: UserGoal | null;
   runs: UserRun[];
+  plannedRuns: UserRunPlan[];
 };
 
-export default function GoalDashboard({ goal, runs }: GoalDashboardProps) {
+export default function GoalDashboard({ goal, runs, plannedRuns }: GoalDashboardProps) {
   // If no active goal, show create goal UI
   if (!goal) {
     return (
@@ -281,6 +283,65 @@ export default function GoalDashboard({ goal, runs }: GoalDashboardProps) {
         )}
 
         <Separator />
+
+        {/* Plánované běhy v období */}
+        {plannedRuns.length > 0 && (
+          <>
+            <div>
+              <h3 className="text-sm font-semibold mb-3">
+                {progress.goalPhase === "upcoming"
+                  ? "Plánované běhy v období"
+                  : "Nadcházející plánované běhy"}
+              </h3>
+              {progress.goalPhase === "upcoming" && (
+                <div className="mb-3">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    Naplánováno: {plannedRuns.length} běhů,{" "}
+                    {plannedRuns.reduce((sum, p) => sum + p.distance_km, 0).toFixed(1)} km
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Tyto běhy se započítají do progrese až po{" "}
+                    {new Date(goal!.period_start).toLocaleDateString("cs-CZ")}.
+                  </p>
+                </div>
+              )}
+              <div className="space-y-2">
+                {plannedRuns.map((plan) => {
+                  const date = new Date(plan.planned_at);
+                  const dateStr = date.toLocaleDateString("cs-CZ", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  });
+                  const timeStr = date.toLocaleTimeString("cs-CZ", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
+
+                  return (
+                    <div
+                      key={plan.id}
+                      className="flex items-center justify-between gap-4 rounded-lg border p-3 text-sm"
+                    >
+                      <div className="flex flex-col gap-1">
+                        <span className="font-medium">
+                          {dateStr} {timeStr}
+                        </span>
+                        <div className="flex gap-3 text-muted-foreground">
+                          <span>{plan.distance_km} km</span>
+                          {plan.target_duration_min && (
+                            <span>cíl: {plan.target_duration_min} min</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <Separator />
+          </>
+        )}
 
         {/* Recent runs */}
         <div>
