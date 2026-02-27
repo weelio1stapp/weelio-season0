@@ -22,6 +22,7 @@ AS $$
   FROM public.user_runs
   WHERE user_id = auth.uid()
     AND (ran_at::date) BETWEEN period_start AND period_end
+    AND ran_at <= now()
   ORDER BY ran_at DESC;
 $$;
 

@@ -49,6 +49,14 @@ export async function createRunForPlace(formData: FormData) {
     ran_at = new Date().toISOString();
   }
 
+  // Validate ran_at is not in the future (allow 5 min tolerance)
+  const now = new Date();
+  const ranAtDate = new Date(ran_at);
+  const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+  if (ranAtDate > fiveMinutesFromNow) {
+    return { success: false, error: "Datum běhu nemůže být v budoucnu." };
+  }
+
   // Calculate pace_sec_per_km if duration_min is provided
   let pace_sec_per_km: number | null = null;
   if (duration_min !== null && distance_km > 0) {
