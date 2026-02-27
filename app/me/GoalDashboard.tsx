@@ -194,11 +194,14 @@ export default function GoalDashboard({ goal, runs }: GoalDashboardProps) {
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <span className="font-medium">
-                  {progress.daysUntilStart === 0
-                    ? "Začíná dnes"
-                    : `Začíná za ${progress.daysUntilStart} ${
-                        progress.daysUntilStart === 1 ? "den" : progress.daysUntilStart < 5 ? "dny" : "dnů"
-                      }`}
+                  {(() => {
+                    const days = progress.daysUntilStart ?? 0;
+                    return days === 0
+                      ? "Začíná dnes"
+                      : `Začíná za ${days} ${
+                          days === 1 ? "den" : days < 5 ? "dny" : "dnů"
+                        }`;
+                  })()}
                 </span>
               </div>
               <p className="text-muted-foreground text-xs">
