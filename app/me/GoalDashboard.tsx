@@ -84,6 +84,20 @@ export default function GoalDashboard({ goal, runs }: GoalDashboardProps) {
     planStatusBadge = { label: "Plán: skluz", variant: "destructive" };
   }
 
+  // Map goal phase to badge
+  let phaseBadge: {
+    label: string;
+    variant: "default" | "secondary" | "destructive";
+  } = {
+    label: "Probíhá",
+    variant: "secondary",
+  };
+  if (progress.goalPhase === "upcoming") {
+    phaseBadge = { label: "Cíl ještě nezačal", variant: "secondary" };
+  } else if (progress.goalPhase === "finished") {
+    phaseBadge = { label: "Ukončeno", variant: "secondary" };
+  }
+
   // Format period for display
   const periodStartStr = new Date(goal.period_start).toLocaleDateString(
     "cs-CZ"
@@ -96,10 +110,15 @@ export default function GoalDashboard({ goal, runs }: GoalDashboardProps) {
         <div className="flex flex-row items-center justify-between">
           <CardTitle>Projekt Krysa 🐀</CardTitle>
           <div className="flex items-center gap-2">
-            <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
-            <Badge variant={planStatusBadge.variant} className="text-xs">
-              {planStatusBadge.label}
-            </Badge>
+            <Badge variant={phaseBadge.variant}>{phaseBadge.label}</Badge>
+            {(progress.goalPhase === "active" || progress.goalPhase === "finished") && (
+              <>
+                <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
+                <Badge variant={planStatusBadge.variant} className="text-xs">
+                  {planStatusBadge.label}
+                </Badge>
+              </>
+            )}
             <CreateGoalDialog
               triggerLabel="Změnit cíl"
               existingGoal={{
@@ -169,59 +188,108 @@ export default function GoalDashboard({ goal, runs }: GoalDashboardProps) {
 
         <Separator />
 
-        {/* Cílovník (Target Tracker) */}
-        <div>
-          <h3 className="text-sm font-semibold mb-3">Cílovník</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Dnes máš mít (časově):</span>
-              <span className="font-medium">
-                {progress.expectedKmByNow.toFixed(1)} km, {progress.expectedRunsByNow.toFixed(1)} běhů
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Dnes máš mít (plán 6/týden):</span>
-              <span className="font-medium">
-                {progress.expectedKmByNow_plan.toFixed(1)} km, {progress.expectedRunsByNow_plan.toFixed(1)} běhů
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Máš hotovo:</span>
-              <span className="font-medium">
-                {totalKm.toFixed(1)} km, {totalRuns} běhů
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Rozdíl (časově):</span>
-              <span className={`font-medium ${progress.deltaKm >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {progress.deltaKm >= 0 ? '+' : ''}{progress.deltaKm.toFixed(1)} km, {progress.deltaRuns >= 0 ? '+' : ''}{progress.deltaRuns.toFixed(1)} běhů
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Rozdíl (plán):</span>
-              <span className={`font-medium ${progress.deltaKm_plan >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {progress.deltaKm_plan >= 0 ? '+' : ''}{progress.deltaKm_plan.toFixed(1)} km, {progress.deltaRuns_plan >= 0 ? '+' : ''}{progress.deltaRuns_plan.toFixed(1)} běhů
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Tempo plnění:</span>
-              <span className="font-medium">
-                km {(progress.kmPct * 100).toFixed(0)}% vs čas {(progress.timePct * 100).toFixed(0)}%
-              </span>
+        {/* Cílovník (Target Tracker) - only for active/finished */}
+        {progress.goalPhase === "upcoming" ? (
+          <div>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">
+                  {progress.daysUntilStart === 0
+                    ? "Začíná dnes"
+                    : `Začíná za ${progress.daysUntilStart} ${
+                        progress.daysUntilStart === 1 ? "den" : progress.daysUntilStart < 5 ? "dny" : "dnů"
+                      }`}
+                </span>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                Běhy, které zapíšeš teď, se do cíle započítají až od{" "}
+                {periodStartStr}.
+              </p>
             </div>
           </div>
-        </div>
+        ) : (
+          <div>
+            <h3 className="text-sm font-semibold mb-3">Cílovník</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  {progress.goalPhase === "finished"
+                    ? "Měl jsi splnit (časově):"
+                    : "Dnes máš mít (časově):"}
+                </span>
+                <span className="font-medium">
+                  {progress.expectedKmByNow.toFixed(1)} km,{" "}
+                  {progress.expectedRunsByNow.toFixed(1)} běhů
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  {progress.goalPhase === "finished"
+                    ? "Měl jsi splnit (plán 6/týden):"
+                    : "Dnes máš mít (plán 6/týden):"}
+                </span>
+                <span className="font-medium">
+                  {progress.expectedKmByNow_plan.toFixed(1)} km,{" "}
+                  {progress.expectedRunsByNow_plan.toFixed(1)} běhů
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Máš hotovo:</span>
+                <span className="font-medium">
+                  {totalKm.toFixed(1)} km, {totalRuns} běhů
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Rozdíl (časově):</span>
+                <span
+                  className={`font-medium ${
+                    progress.deltaKm >= 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {progress.deltaKm >= 0 ? "+" : ""}
+                  {progress.deltaKm.toFixed(1)} km,{" "}
+                  {progress.deltaRuns >= 0 ? "+" : ""}
+                  {progress.deltaRuns.toFixed(1)} běhů
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Rozdíl (plán):</span>
+                <span
+                  className={`font-medium ${
+                    progress.deltaKm_plan >= 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {progress.deltaKm_plan >= 0 ? "+" : ""}
+                  {progress.deltaKm_plan.toFixed(1)} km,{" "}
+                  {progress.deltaRuns_plan >= 0 ? "+" : ""}
+                  {progress.deltaRuns_plan.toFixed(1)} běhů
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Tempo plnění:</span>
+                <span className="font-medium">
+                  km {(progress.kmPct * 100).toFixed(0)}% vs čas{" "}
+                  {(progress.timePct * 100).toFixed(0)}%
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <Separator />
 
         {/* Recent runs */}
         <div>
           <h3 className="text-sm font-semibold mb-3">
-            Posledních 5 běhů v období
+            {progress.goalPhase === "upcoming"
+              ? "Běhy v období cíle"
+              : "Posledních 5 běhů v období"}
           </h3>
           {runs.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Zatím žádný běh v tomto období.
+              {progress.goalPhase === "upcoming"
+                ? "Zatím žádné — cíl ještě nezačal"
+                : "Zatím žádný běh v tomto období."}
             </p>
           ) : (
             <div className="space-y-2">

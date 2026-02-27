@@ -18,6 +18,10 @@ export type GoalProgress = {
   deltaRuns_plan: number;
   deltaKm_plan: number;
   status_plan: "ahead" | "on_track" | "behind";
+  // Goal phase
+  goalPhase: "upcoming" | "active" | "finished";
+  daysUntilStart: number | null;
+  daysSinceEnd: number | null;
 };
 
 type ComputeGoalProgressArgs = {
@@ -95,6 +99,25 @@ export function computeGoalProgress(
     1
   );
 
+  // Determine goal phase using date-only comparisons (timezone-proof)
+  const startDate = startOfDay(new Date(goal.period_start));
+  const endDate = startOfDay(new Date(goal.period_end));
+  const today = startOfDay(now);
+
+  let goalPhase: "upcoming" | "active" | "finished" = "active";
+  let daysUntilStart: number | null = null;
+  let daysSinceEnd: number | null = null;
+
+  if (today < startDate) {
+    goalPhase = "upcoming";
+    daysUntilStart = differenceInCalendarDays(startDate, today);
+  } else if (today > endDate) {
+    goalPhase = "finished";
+    daysSinceEnd = differenceInCalendarDays(today, endDate);
+  } else {
+    goalPhase = "active";
+  }
+
   // Calculate time progress (inclusive days)
   const periodStart = startOfDay(new Date(goal.period_start));
   const periodEnd = endOfDay(new Date(goal.period_end));
@@ -102,61 +125,97 @@ export function computeGoalProgress(
 
   const totalDays =
     differenceInCalendarDays(periodEnd, periodStart) + 1;
-  const elapsedDays = clamp(
-    differenceInCalendarDays(nowDate, periodStart) + 1,
-    0,
-    totalDays
-  );
-  const timePct =
-    totalDays === 0 ? 1 : clamp(elapsedDays / totalDays, 0, 1);
 
-  // Calculate expected values by now
-  const expectedKmByNow = goal.target_distance_km * timePct;
-  const expectedRunsByNow = goal.target_runs * timePct;
+  let elapsedDays: number;
+  let timePct: number;
+
+  if (goalPhase === "upcoming") {
+    elapsedDays = 0;
+    timePct = 0;
+  } else if (goalPhase === "finished") {
+    elapsedDays = totalDays;
+    timePct = 1;
+  } else {
+    elapsedDays = clamp(
+      differenceInCalendarDays(nowDate, periodStart) + 1,
+      0,
+      totalDays
+    );
+    timePct = totalDays === 0 ? 1 : clamp(elapsedDays / totalDays, 0, 1);
+  }
+
+  // Calculate expected values by now based on phase
+  let expectedKmByNow: number;
+  let expectedRunsByNow: number;
+  let expectedRunsByNow_plan: number;
+  let expectedKmByNow_plan: number;
+
+  if (goalPhase === "upcoming") {
+    // For upcoming: all expectations are 0
+    expectedKmByNow = 0;
+    expectedRunsByNow = 0;
+    expectedRunsByNow_plan = 0;
+    expectedKmByNow_plan = 0;
+  } else if (goalPhase === "finished") {
+    // For finished: all expectations are targets
+    expectedKmByNow = goal.target_distance_km;
+    expectedRunsByNow = goal.target_runs;
+    expectedRunsByNow_plan = goal.target_runs;
+    expectedKmByNow_plan = goal.target_distance_km;
+  } else {
+    // For active: calculate normally
+    expectedKmByNow = goal.target_distance_km * timePct;
+    expectedRunsByNow = goal.target_runs * timePct;
+
+    // Plan-based expectation (6 runs per week)
+    const weeksElapsed = elapsedDays / 7;
+    const plannedRunsRaw = weeksElapsed * 6;
+
+    // Round to 1 decimal place and clamp to [0, target_runs]
+    expectedRunsByNow_plan = Math.min(
+      goal.target_runs,
+      Math.max(0, Math.round(plannedRunsRaw * 10) / 10)
+    );
+
+    // Derive km expectation proportionally
+    const expectedKmByNow_plan_raw =
+      goal.target_runs > 0
+        ? goal.target_distance_km * (expectedRunsByNow_plan / goal.target_runs)
+        : 0;
+    expectedKmByNow_plan = Math.min(
+      goal.target_distance_km,
+      Math.max(0, Math.round(expectedKmByNow_plan_raw * 10) / 10)
+    );
+  }
 
   // Calculate deltas
   const deltaKm = totalKm - expectedKmByNow;
   const deltaRuns = totalRuns - expectedRunsByNow;
-
-  // Determine status based on thresholds
-  let status: "ahead" | "on_track" | "behind" = "on_track";
-  const threshold = 0.05 * goal.target_distance_km;
-  if (deltaKm >= threshold) {
-    status = "ahead";
-  } else if (deltaKm <= -threshold) {
-    status = "behind";
-  }
-
-  // Plan-based expectation (6 runs per week)
-  const weeksElapsed = elapsedDays / 7;
-  const plannedRunsRaw = weeksElapsed * 6;
-
-  // Round to 1 decimal place and clamp to [0, target_runs]
-  const expectedRunsByNow_plan = Math.min(
-    goal.target_runs,
-    Math.max(0, Math.round(plannedRunsRaw * 10) / 10)
-  );
-
-  // Derive km expectation proportionally
-  const expectedKmByNow_plan_raw =
-    goal.target_runs > 0
-      ? goal.target_distance_km * (expectedRunsByNow_plan / goal.target_runs)
-      : 0;
-  const expectedKmByNow_plan = Math.min(
-    goal.target_distance_km,
-    Math.max(0, Math.round(expectedKmByNow_plan_raw * 10) / 10)
-  );
-
-  // Calculate plan-based deltas
   const deltaRuns_plan = totalRuns - expectedRunsByNow_plan;
   const deltaKm_plan = totalKm - expectedKmByNow_plan;
 
-  // Determine plan-based status
+  // Determine status based on thresholds
+  let status: "ahead" | "on_track" | "behind" = "on_track";
   let status_plan: "ahead" | "on_track" | "behind" = "on_track";
-  if (deltaKm_plan >= threshold) {
-    status_plan = "ahead";
-  } else if (deltaKm_plan <= -threshold) {
-    status_plan = "behind";
+
+  if (goalPhase === "upcoming") {
+    // For upcoming: always on_track (no ahead/behind yet)
+    status = "on_track";
+    status_plan = "on_track";
+  } else {
+    // For active and finished: compute normally
+    const threshold = 0.05 * goal.target_distance_km;
+    if (deltaKm >= threshold) {
+      status = "ahead";
+    } else if (deltaKm <= -threshold) {
+      status = "behind";
+    }
+
+    if (deltaKm_plan >= threshold) {
+      status_plan = "ahead";
+    } else if (deltaKm_plan <= -threshold) {
+      status_plan = "behind";
+    }
   }
 
   return {
@@ -178,5 +237,8 @@ export function computeGoalProgress(
     deltaRuns_plan,
     deltaKm_plan,
     status_plan,
+    goalPhase,
+    daysUntilStart,
+    daysSinceEnd,
   };
 }
