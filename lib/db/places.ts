@@ -4,15 +4,7 @@ import type {
   DifficultyPreset,
   TimePreset,
 } from "@/lib/placesFilters";
-
-export type PlaceType =
-  | "urban_walk"
-  | "nature_walk"
-  | "viewpoint"
-  | "park_forest"
-  | "industrial"
-  | "lake_river"
-  | "other";
+import type { PlaceType } from "@/lib/constants/placeTypes";
 
 export type PlaceRow = {
   id: string;
@@ -46,6 +38,10 @@ export type PlaceRow = {
   audio_duration_sec?: number | null;
   audio_status?: "draft" | "ready" | "missing";
   audio_note?: string | null;
+
+  // Sport and surface metadata
+  sport_type?: "run" | "run_inline" | null;
+  surface_type?: "asphalt" | "gravel" | "trail" | "mixed" | null;
 };
 
 export async function fetchPlaces(): Promise<PlaceRow[]> {
@@ -108,6 +104,11 @@ export async function fetchPlacesFiltered(
   // Filter by audio status
   if (filters.audioStatus) {
     query = query.eq("audio_status", filters.audioStatus);
+  }
+
+  // Filter by sport type
+  if (filters.sport) {
+    query = query.eq("sport_type", filters.sport);
   }
 
   // Apply sorting

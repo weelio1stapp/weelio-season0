@@ -3,8 +3,9 @@ import { fetchPlacesFiltered } from "@/lib/db/places";
 import { parseSearchParams } from "@/lib/placesFilters";
 import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
 import PlacesFilters from "./PlacesFilters";
-import { PLACE_TYPE_LABELS } from "@/lib/placesFilters";
+import { PLACE_TYPE_LABELS } from "@/lib/constants/placeTypes";
 import { getBatchAudioScriptStatus } from "@/lib/audio/audioScriptStatus";
+import { Badge } from "@/components/ui/badge";
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -156,6 +157,12 @@ export default async function PlacesPage({ searchParams }: Props) {
                         <span className="rounded-full bg-muted text-muted-foreground px-2 py-1">
                           ❌ Bez audia
                         </span>
+                      )}
+                      {p.sport_type === "run" && (
+                        <Badge variant="outline">🏃 RUN</Badge>
+                      )}
+                      {p.sport_type === "run_inline" && (
+                        <Badge variant="outline">🛼 RUN + INLINE</Badge>
                       )}
                     </div>
 

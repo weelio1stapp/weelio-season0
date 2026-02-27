@@ -13,6 +13,7 @@ import {
   fetchIntroSegment,
 } from "@/lib/db/audio-segments";
 import { getAudioScriptStatus } from "@/lib/audio/audioScriptStatus";
+import { fetchMyRunsForPlace } from "@/lib/db/runs";
 import PlaceAuthorActions from "@/components/PlaceAuthorActions";
 import PlaceRiddles from "@/components/place/PlaceRiddles";
 import PlaceHero from "./PlaceHero";
@@ -23,6 +24,7 @@ import PlaceCommunitySection from "./PlaceCommunitySection";
 import RouteSection from "@/components/routes/RouteSection";
 import AudioScriptViewer from "@/components/audio/AudioScriptViewer";
 import AudioScriptStatusCard from "@/components/audio/AudioScriptStatusCard";
+import RecordRunDialog from "./RecordRunDialog";
 import { Separator } from "@/components/ui/separator";
 import {
   Card,
@@ -56,7 +58,7 @@ export default async function PlaceDetailPage({
   // Check if user has visited today
   const alreadyVisited = currentUserId ? await hasVisitedToday(place.id) : false;
 
-  // Load journal entries, riddles, route points, audio segments, and script status
+  // Load journal entries, riddles, route points, audio segments, script status, and user runs
   const [
     journalEntries,
     riddles,
@@ -64,6 +66,7 @@ export default async function PlaceDetailPage({
     audioSegments,
     introSegment,
     audioScriptStatus,
+    myRuns,
   ] = await Promise.all([
     getPublicJournalEntriesForPlace(place.id, 10),
     getPublicRiddlesForPlace(place.id),
@@ -71,6 +74,7 @@ export default async function PlaceDetailPage({
     fetchAudioSegments(place.id),
     fetchIntroSegment(place.id),
     getAudioScriptStatus(place.id),
+    fetchMyRunsForPlace(place.id, 10),
   ]);
 
   // Create map of route_point_id -> audio segment
@@ -211,8 +215,74 @@ export default async function PlaceDetailPage({
           difficulty={place.difficulty}
           why={place.why}
           cover_public_url={place.cover_public_url}
+          sport_type={place.sport_type}
+          surface_type={place.surface_type}
         />
       </div>
+
+      {/* Moje běhy na této trase */}
+      {currentUserId && (
+        <div className="mb-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Moje běhy na této trase</CardTitle>
+              <RecordRunDialog
+                placeId={place.id}
+                isAuthenticated={!!currentUserId}
+              />
+            </CardHeader>
+            <CardContent>
+              {myRuns.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Zatím žádný běh.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {myRuns.map((run) => {
+                    const date = new Date(run.ran_at);
+                    const dateStr = date.toLocaleDateString("cs-CZ", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    });
+                    const timeStr = date.toLocaleTimeString("cs-CZ", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
+
+                    let paceStr = "";
+                    if (run.pace_sec_per_km) {
+                      const paceMin = Math.floor(run.pace_sec_per_km / 60);
+                      const paceSec = run.pace_sec_per_km % 60;
+                      paceStr = `${paceMin}:${String(paceSec).padStart(2, "0")} /km`;
+                    }
+
+                    return (
+                      <div
+                        key={run.id}
+                        className="flex items-center justify-between gap-4 rounded-lg border p-3 text-sm"
+                      >
+                        <div className="flex flex-col gap-1">
+                          <span className="font-medium">
+                            {dateStr} {timeStr}
+                          </span>
+                          <div className="flex gap-3 text-muted-foreground">
+                            <span>{run.distance_km} km</span>
+                            {run.duration_min && (
+                              <span>{run.duration_min} min</span>
+                            )}
+                            {paceStr && <span>{paceStr}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* B) PlacePlanSection - PRIMARY CTA: Navigation */}
       <div className="mb-6">

@@ -1,4 +1,7 @@
-import { PlaceType } from "./db/places";
+import { PlaceType, isPlaceType, PLACE_TYPE_LABELS } from "./constants/placeTypes";
+
+// Re-export for backward compatibility
+export { PLACE_TYPE_LABELS };
 
 export type DifficultyPreset = "easy" | "medium" | "hard";
 export type TimePreset = "lt60" | "btw60_120" | "gt120";
@@ -13,6 +16,7 @@ export type PlacesFilters = {
   sort: SortOption;
   myPlaces: boolean;
   audioStatus: AudioStatus;
+  sport?: "run" | "run_inline" | null;
 };
 
 /**
@@ -26,7 +30,7 @@ export function parseSearchParams(
   const types: PlaceType[] = typesParam
     ? String(typesParam)
         .split(",")
-        .filter((t) => isValidPlaceType(t))
+        .filter((t) => isPlaceType(t))
     : [];
 
 // Parse difficulty
@@ -71,22 +75,14 @@ const time: TimePreset[] = timeParam
       ? (audioParam as "ready" | "draft" | "missing")
       : null;
 
-  return { types, difficulty, time, area, sort, myPlaces, audioStatus };
-}
+  // Parse sport
+  const sportParam = searchParams.sport;
+  const sport =
+    sportParam === "run" || sportParam === "run_inline"
+      ? sportParam
+      : null;
 
-/**
- * Check if string is valid PlaceType
- */
-function isValidPlaceType(value: string): value is PlaceType {
-  return [
-    "urban_walk",
-    "nature_walk",
-    "viewpoint",
-    "park_forest",
-    "industrial",
-    "lake_river",
-    "other",
-  ].includes(value);
+  return { types, difficulty, time, area, sort, myPlaces, audioStatus, sport };
 }
 
 /**
@@ -123,22 +119,13 @@ export function buildFilterUrl(filters: Partial<PlacesFilters>): string {
     params.set("audio", filters.audioStatus);
   }
 
+  if (filters.sport) {
+    params.set("sport", filters.sport);
+  }
+
   const query = params.toString();
   return query ? `?${query}` : "";
 }
-
-/**
- * Place type labels with emoji
- */
-export const PLACE_TYPE_LABELS: Record<PlaceType, string> = {
-  urban_walk: "🏙 Městská procházka",
-  nature_walk: "🌲 Přírodní túra",
-  viewpoint: "🏔 Vyhlídka",
-  park_forest: "🌳 Park / Les",
-  industrial: "🏭 Industriál",
-  lake_river: "💧 Jezero / Řeka",
-  other: "📍 Jiné",
-};
 
 /**
  * Difficulty preset labels

@@ -46,6 +46,8 @@ export async function createPlaceAction(
     audio_duration_sec: formData.get("audio_duration_sec"),
     audio_status: formData.get("audio_status"),
     audio_note: formData.get("audio_note"),
+    sport_type: formData.get("sport_type") || null,
+    surface_type: formData.get("surface_type") || null,
   };
 
   const result = createPlaceSchema.safeParse(rawData);
@@ -97,6 +99,8 @@ export async function createPlaceAction(
     audio_duration_sec: validData.audio_duration_sec || null,
     audio_status: validData.audio_status || "missing",
     audio_note: validData.audio_note || null,
+    sport_type: validData.sport_type || null,
+    surface_type: validData.surface_type || null,
   });
 
   if (error) {

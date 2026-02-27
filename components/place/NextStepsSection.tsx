@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { PLACE_TYPE_LABELS } from "@/lib/placesFilters";
-import type { PlaceType } from "@/lib/db/places";
+import { PLACE_TYPE_LABELS, PlaceType } from "@/lib/constants/placeTypes";
 import type { ChallengeProgress, Challenge } from "@/lib/db/challenges";
 
 type NearbyPlace = {

@@ -1,7 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PLACE_TYPE_LABELS } from "@/lib/placesFilters";
-import { PlaceType } from "@/lib/db/places";
+import { PLACE_TYPE_LABELS, PlaceType } from "@/lib/constants/placeTypes";
 import { Clock, Zap } from "lucide-react";
 
 type PlaceHeroProps = {
@@ -12,6 +11,8 @@ type PlaceHeroProps = {
   difficulty: number;
   why: string;
   cover_public_url: string | null;
+  sport_type?: "run" | "run_inline" | null;
+  surface_type?: "asphalt" | "gravel" | "trail" | "mixed" | null;
 };
 
 export default function PlaceHero({
@@ -22,6 +23,8 @@ export default function PlaceHero({
   difficulty,
   why,
   cover_public_url,
+  sport_type,
+  surface_type,
 }: PlaceHeroProps) {
   return (
     <Card className="border-2">
@@ -54,6 +57,24 @@ export default function PlaceHero({
             <Zap className="w-3 h-3" />
             {difficulty}/5
           </Badge>
+          {sport_type === "run" && (
+            <Badge variant="secondary">🏃 Běžecká trasa</Badge>
+          )}
+          {sport_type === "run_inline" && (
+            <Badge variant="secondary">🛼 Vhodné i na inline</Badge>
+          )}
+          {surface_type === "asphalt" && (
+            <Badge variant="secondary">Asfalt</Badge>
+          )}
+          {surface_type === "gravel" && (
+            <Badge variant="secondary">Štěrk</Badge>
+          )}
+          {surface_type === "trail" && (
+            <Badge variant="secondary">Lesní stezka</Badge>
+          )}
+          {surface_type === "mixed" && (
+            <Badge variant="secondary">Smíšený</Badge>
+          )}
         </div>
 
         {/* Description */}

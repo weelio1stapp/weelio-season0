@@ -1,5 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/serverClient";
-import type { PlaceType } from "./places";
+import type { PlaceType } from "@/lib/constants/placeTypes";
 
 export type TopPlace = {
   place_id: string;

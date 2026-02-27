@@ -1,15 +1,6 @@
 import { z } from "zod";
 import { parseLatLng } from "@/lib/utils/coords";
-
-const PLACE_TYPES = [
-  "urban_walk",
-  "nature_walk",
-  "viewpoint",
-  "park_forest",
-  "industrial",
-  "lake_river",
-  "other",
-] as const;
+import { PLACE_TYPES } from "@/lib/constants/placeTypes";
 
 /**
  * Zod schema for Create Place form
@@ -102,6 +93,14 @@ export const createPlaceSchema = z.object({
   audio_note: z
     .string()
     .max(300, "Poznámka je příliš dlouhá (max 300 znaků)")
+    .optional(),
+
+  // Sport and surface metadata (optional)
+  sport_type: z.enum(["run", "run_inline"]).nullable().optional(),
+
+  surface_type: z
+    .enum(["asphalt", "gravel", "trail", "mixed"])
+    .nullable()
     .optional(),
 });
 

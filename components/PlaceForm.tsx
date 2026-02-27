@@ -5,16 +5,16 @@ import Button from "@/components/Button";
 import type { PlaceRow } from "@/lib/db/places";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserClient";
 import { updatePlaceAudioMetadata } from "@/app/p/[id]/edit/actions";
+import { PLACE_TYPES, PLACE_TYPE_LABELS } from "@/lib/constants/placeTypes";
 
-const PLACE_TYPES = [
-  { value: "other", label: "Jiné" },
-  { value: "urban_walk", label: "Městská procházka" },
-  { value: "nature_walk", label: "Přírodní túra" },
-  { value: "viewpoint", label: "Vyhlídka" },
-  { value: "park_forest", label: "Park / Les" },
-  { value: "industrial", label: "Industriál" },
-  { value: "lake_river", label: "Jezero / Řeka" },
-] as const;
+// Helper to remove emoji prefix from labels (for dropdown display)
+const stripEmojiPrefix = (label: string) => label.replace(/^[^\p{L}\p{N}]+\s+/u, "");
+
+// Generate select options from centralized constants (without emoji)
+const PLACE_TYPE_OPTIONS = PLACE_TYPES.map((value) => ({
+  value,
+  label: stripEmojiPrefix(PLACE_TYPE_LABELS[value]),
+}));
 
 type ActionResult = {
   success: boolean;
@@ -198,7 +198,7 @@ export default function PlaceForm({
           defaultValue={initialData?.type || "other"}
           className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {PLACE_TYPES.map((t) => (
+          {PLACE_TYPE_OPTIONS.map((t) => (
             <option key={t.value} value={t.value}>
               {t.label}
             </option>
@@ -306,6 +306,59 @@ export default function PlaceForm({
           </p>
           {errors.difficulty && (
             <p className="mt-1 text-sm text-red-600">{errors.difficulty}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Sport Type & Surface Type - side by side on larger screens */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Sport Type */}
+        <div>
+          <label
+            htmlFor="sport_type"
+            className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
+          >
+            Sportovní režim
+          </label>
+          <select
+            id="sport_type"
+            name="sport_type"
+            disabled={isPending}
+            defaultValue={initialData?.sport_type || ""}
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="">Nesportovní / obecná trasa</option>
+            <option value="run">🏃 Běh</option>
+            <option value="run_inline">🛼 Běh + Inline</option>
+          </select>
+          {errors.sport_type && (
+            <p className="mt-1 text-sm text-red-600">{errors.sport_type}</p>
+          )}
+        </div>
+
+        {/* Surface Type */}
+        <div>
+          <label
+            htmlFor="surface_type"
+            className="block text-sm font-medium mb-2 text-[var(--text-primary)]"
+          >
+            Povrch
+          </label>
+          <select
+            id="surface_type"
+            name="surface_type"
+            disabled={isPending}
+            defaultValue={initialData?.surface_type || ""}
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[var(--accent-primary)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="">Neurčeno</option>
+            <option value="asphalt">Asfalt</option>
+            <option value="gravel">Štěrk</option>
+            <option value="trail">Lesní stezka</option>
+            <option value="mixed">Smíšený</option>
+          </select>
+          {errors.surface_type && (
+            <p className="mt-1 text-sm text-red-600">{errors.surface_type}</p>
           )}
         </div>
       </div>

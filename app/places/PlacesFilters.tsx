@@ -3,10 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 
 import type { PlacesFilters } from "@/lib/placesFilters";
-import type { PlaceType } from "@/lib/db/places";
+import { PLACE_TYPES, PLACE_TYPE_LABELS } from "@/lib/constants/placeTypes";
 
 import {
-  PLACE_TYPE_LABELS,
   DIFFICULTY_LABELS,
   TIME_LABELS,
   SORT_LABELS,
@@ -57,16 +56,6 @@ export default function PlacesFilters({
     router.push("/places");
   }
 
-  const allPlaceTypes: PlaceType[] = [
-    "urban_walk",
-    "nature_walk",
-    "viewpoint",
-    "park_forest",
-    "industrial",
-    "lake_river",
-    "other",
-  ];
-
   const allDifficulties: DifficultyPreset[] = ["easy", "medium", "hard"];
   const allTimes: TimePreset[] = ["lt60", "btw60_120", "gt120"];
   const allSorts: SortOption[] = ["newest", "shortest", "easiest", "hardest"];
@@ -89,11 +78,48 @@ export default function PlacesFilters({
         </div>
       )}
 
+      {/* Sport filter */}
+      <div>
+        <h3 className="text-sm font-semibold mb-3">Sportovní režim</h3>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => updateFilters({ sport: null })}
+            className={`rounded-full border-2 px-3 py-1.5 text-sm transition-colors ${
+              !currentFilters.sport
+                ? "border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white"
+                : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            Vše
+          </button>
+          <button
+            onClick={() => updateFilters({ sport: "run" })}
+            className={`rounded-full border-2 px-3 py-1.5 text-sm transition-colors ${
+              currentFilters.sport === "run"
+                ? "border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white"
+                : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            🏃 Běh
+          </button>
+          <button
+            onClick={() => updateFilters({ sport: "run_inline" })}
+            className={`rounded-full border-2 px-3 py-1.5 text-sm transition-colors ${
+              currentFilters.sport === "run_inline"
+                ? "border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white"
+                : "border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            🛼 Inline
+          </button>
+        </div>
+      </div>
+
       {/* Type chips */}
       <div>
         <h3 className="text-sm font-semibold mb-3">Typ destinace</h3>
         <div className="flex flex-wrap gap-2">
-          {allPlaceTypes.map((type) => (
+          {PLACE_TYPES.map((type) => (
             <button
               key={type}
               onClick={() => toggleArrayFilter("types", type)}

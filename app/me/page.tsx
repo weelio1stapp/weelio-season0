@@ -18,9 +18,12 @@ import {
   getMyJournalEntries,
   getPlaceNamesByIds,
 } from "@/lib/db/journal";
+import { fetchMyActiveGoal } from "@/lib/db/goals";
+import { fetchMyRunsInRange } from "@/lib/db/runs";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import StatsCards from "@/components/profile/StatsCards";
 import TabsSection from "@/components/profile/TabsSection";
+import GoalDashboard from "./GoalDashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +41,7 @@ export default async function MyProfilePage() {
 
   const userId = user.id;
 
-  // Fetch profile and stats in parallel
+  // Fetch profile, stats, and goal in parallel
   const [
     profile,
     authorStats,
@@ -48,6 +51,7 @@ export default async function MyProfilePage() {
     challenges,
     userProgress,
     journalEntries,
+    activeGoal,
   ] = await Promise.all([
     getProfileById(userId),
     getAuthorStats(userId, 30),
@@ -57,7 +61,22 @@ export default async function MyProfilePage() {
     getActiveChallenges(),
     getUserProgress(),
     getMyJournalEntries(30),
+    fetchMyActiveGoal(),
   ]);
+
+  // Fetch runs for active goal period
+  let goalRuns: Awaited<ReturnType<typeof fetchMyRunsInRange>> = [];
+  if (activeGoal) {
+    const startOfDay = new Date(activeGoal.period_start);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(activeGoal.period_end);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    goalRuns = await fetchMyRunsInRange(
+      startOfDay.toISOString(),
+      endOfDay.toISOString()
+    );
+  }
 
   // Batch load place names for journal entries
   const placeIds = journalEntries
@@ -120,6 +139,11 @@ export default async function MyProfilePage() {
           authorStats={authorStats}
           walkerStats={walkerStats}
         />
+      </div>
+
+      {/* Goal Dashboard */}
+      <div className="mb-8">
+        <GoalDashboard goal={activeGoal} runs={goalRuns} />
       </div>
 
       {/* Stats Cards */}

@@ -3,7 +3,7 @@ import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import Link from "next/link";
 import { getTopPlaces } from "@/lib/db/leaderboard";
-import { PLACE_TYPE_LABELS } from "@/lib/placesFilters";
+import { PLACE_TYPE_LABELS } from "@/lib/constants/placeTypes";
 
 export const dynamic = "force-dynamic";
 
