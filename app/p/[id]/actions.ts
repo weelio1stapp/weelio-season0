@@ -80,3 +80,41 @@ export async function createRunForPlace(formData: FormData) {
   revalidatePath(`/p/${placeId}`);
   return { success: true };
 }
+
+export async function deleteMyRun(runId: string) {
+  const supabase = await getSupabaseServerClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "Musíš být přihlášený" };
+  }
+
+  // Get the run first to know which place to revalidate
+  const { data: run, error: fetchError } = await supabase
+    .from("user_runs")
+    .select("place_id")
+    .eq("id", runId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (fetchError || !run) {
+    console.error("deleteMyRun fetch error:", fetchError);
+    return { success: false, error: "Běh nebyl nalezen" };
+  }
+
+  // Delete the run (RLS policy ensures only own runs can be deleted)
+  const { error: deleteError } = await supabase
+    .from("user_runs")
+    .delete()
+    .eq("id", runId)
+    .eq("user_id", user.id);
+
+  if (deleteError) {
+    console.error("deleteMyRun error:", deleteError);
+    return { success: false, error: "Chyba při mazání běhu" };
+  }
+
+  revalidatePath(`/p/${run.place_id}`);
+  revalidatePath("/me");
+  return { success: true };
+}

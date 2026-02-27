@@ -26,6 +26,7 @@ import StatsCards from "@/components/profile/StatsCards";
 import TabsSection from "@/components/profile/TabsSection";
 import GoalDashboard from "./GoalDashboard";
 import GoalsHistory from "./GoalsHistory";
+import WeeklyPlannedRuns from "./WeeklyPlannedRuns";
 
 export const dynamic = "force-dynamic";
 
@@ -166,6 +167,11 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
       {/* Goal Dashboard */}
       <div className="mb-8">
         <GoalDashboard goal={displayedGoal} runs={goalRuns} plannedRuns={goalPlannedRuns} />
+      </div>
+
+      {/* Weekly Planned Runs */}
+      <div className="mb-8">
+        <WeeklyPlannedRuns />
       </div>
 
       {/* Goals History */}

@@ -96,10 +96,34 @@ export async function completePlannedRun(planId: string) {
     return { success: false, error: "Plánovaný běh nebyl nalezen" };
   }
 
-  // Determine ran_at: use min(planned_at, now) to ensure we don't insert future runs
   const plannedAtDate = new Date(plan.planned_at);
   const now = new Date();
-  const ran_at = plannedAtDate > now ? now.toISOString() : plan.planned_at;
+  const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+
+  // Check if planned_at is in the future (> now + 5 min)
+  if (plannedAtDate > fiveMinutesFromNow) {
+    // Future plan: mark as done but don't create run yet
+    const { error: updateError } = await supabase
+      .from("user_run_plans")
+      .update({
+        status: "done",
+        completed_at: now.toISOString(),
+        completed_run_id: null,
+      })
+      .eq("id", planId);
+
+    if (updateError) {
+      console.error("completePlannedRun update error:", updateError);
+      return { success: false, error: "Chyba při aktualizaci plánu" };
+    }
+
+    revalidatePath(`/p/${plan.place_id}`);
+    revalidatePath("/me");
+    return { success: true, mode: "planned_done_future" as const };
+  }
+
+  // Plan is now or in past: create the actual run
+  const ran_at = plan.planned_at;
 
   // Calculate pace if duration is provided
   let pace_sec_per_km: number | null = null;
@@ -108,24 +132,32 @@ export async function completePlannedRun(planId: string) {
   }
 
   // Insert completed run into user_runs
-  const { error: insertError } = await supabase.from("user_runs").insert({
-    user_id: user.id,
-    place_id: plan.place_id,
-    distance_km: plan.distance_km,
-    duration_min: plan.target_duration_min,
-    pace_sec_per_km,
-    ran_at,
-  });
+  const { data: insertedRun, error: insertError } = await supabase
+    .from("user_runs")
+    .insert({
+      user_id: user.id,
+      place_id: plan.place_id,
+      distance_km: plan.distance_km,
+      duration_min: plan.target_duration_min,
+      pace_sec_per_km,
+      ran_at,
+    })
+    .select()
+    .single();
 
-  if (insertError) {
+  if (insertError || !insertedRun) {
     console.error("completePlannedRun insert error:", insertError);
     return { success: false, error: "Chyba při ukládání dokončeného běhu" };
   }
 
-  // Update plan status to 'done'
+  // Update plan status to 'done' and link to created run
   const { error: updateError } = await supabase
     .from("user_run_plans")
-    .update({ status: "done" })
+    .update({
+      status: "done",
+      completed_at: now.toISOString(),
+      completed_run_id: insertedRun.id,
+    })
     .eq("id", planId);
 
   if (updateError) {
@@ -135,5 +167,5 @@ export async function completePlannedRun(planId: string) {
 
   revalidatePath(`/p/${plan.place_id}`);
   revalidatePath("/me");
-  return { success: true };
+  return { success: true, mode: "created_run" as const };
 }

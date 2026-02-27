@@ -13,6 +13,7 @@ import type { UserRunPlan } from "@/lib/db/runPlans";
 import { computeGoalProgress } from "@/lib/goals/goalProgress";
 import CreateGoalDialog from "./CreateGoalDialog";
 import DeactivateGoalButton from "./DeactivateGoalButton";
+import PlannedRunCardWithCompletion from "./PlannedRunCardWithCompletion";
 
 type GoalDashboardProps = {
   goal: UserGoal | null;
@@ -306,37 +307,9 @@ export default function GoalDashboard({ goal, runs, plannedRuns }: GoalDashboard
                 </div>
               )}
               <div className="space-y-2">
-                {plannedRuns.map((plan) => {
-                  const date = new Date(plan.planned_at);
-                  const dateStr = date.toLocaleDateString("cs-CZ", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  });
-                  const timeStr = date.toLocaleTimeString("cs-CZ", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  });
-
-                  return (
-                    <div
-                      key={plan.id}
-                      className="flex items-center justify-between gap-4 rounded-lg border p-3 text-sm"
-                    >
-                      <div className="flex flex-col gap-1">
-                        <span className="font-medium">
-                          {dateStr} {timeStr}
-                        </span>
-                        <div className="flex gap-3 text-muted-foreground">
-                          <span>{plan.distance_km} km</span>
-                          {plan.target_duration_min && (
-                            <span>cíl: {plan.target_duration_min} min</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {plannedRuns.map((plan) => (
+                  <PlannedRunCardWithCompletion key={plan.id} plan={plan} />
+                ))}
               </div>
             </div>
             <Separator />

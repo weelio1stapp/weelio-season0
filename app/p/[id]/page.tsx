@@ -28,6 +28,7 @@ import AudioScriptStatusCard from "@/components/audio/AudioScriptStatusCard";
 import RecordRunDialog from "./RecordRunDialog";
 import PlanRunDialog from "./PlanRunDialog";
 import PlannedRunCard from "./PlannedRunCard";
+import CompletedRunCard from "./CompletedRunCard";
 import { Separator } from "@/components/ui/separator";
 import {
   Card,
@@ -243,45 +244,9 @@ export default async function PlaceDetailPage({
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {myRuns.map((run) => {
-                    const date = new Date(run.ran_at);
-                    const dateStr = date.toLocaleDateString("cs-CZ", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    });
-                    const timeStr = date.toLocaleTimeString("cs-CZ", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    });
-
-                    let paceStr = "";
-                    if (run.pace_sec_per_km) {
-                      const paceMin = Math.floor(run.pace_sec_per_km / 60);
-                      const paceSec = run.pace_sec_per_km % 60;
-                      paceStr = `${paceMin}:${String(paceSec).padStart(2, "0")} /km`;
-                    }
-
-                    return (
-                      <div
-                        key={run.id}
-                        className="flex items-center justify-between gap-4 rounded-lg border p-3 text-sm"
-                      >
-                        <div className="flex flex-col gap-1">
-                          <span className="font-medium">
-                            {dateStr} {timeStr}
-                          </span>
-                          <div className="flex gap-3 text-muted-foreground">
-                            <span>{run.distance_km} km</span>
-                            {run.duration_min && (
-                              <span>{run.duration_min} min</span>
-                            )}
-                            {paceStr && <span>{paceStr}</span>}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {myRuns.map((run) => (
+                    <CompletedRunCard key={run.id} run={run} />
+                  ))}
                 </div>
               )}
             </CardContent>
