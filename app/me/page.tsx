@@ -20,7 +20,7 @@ import {
 } from "@/lib/db/journal";
 import { fetchMyActiveGoal, fetchMyGoalById } from "@/lib/db/goals";
 import { fetchMyRunsInDateRange } from "@/lib/db/runs";
-import { fetchMyPlannedRunsInDateRange } from "@/lib/db/runPlans";
+import { fetchMyPlannedRunsInDateRangeAll } from "@/lib/db/runPlans";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import StatsCards from "@/components/profile/StatsCards";
 import TabsSection from "@/components/profile/TabsSection";
@@ -87,19 +87,29 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
 
   // Fetch runs and planned runs for displayed goal period (timezone-proof date filtering)
   let goalRuns: Awaited<ReturnType<typeof fetchMyRunsInDateRange>> = [];
-  let goalPlannedRuns: Awaited<ReturnType<typeof fetchMyPlannedRunsInDateRange>> = [];
+  let allGoalPlannedRuns: Awaited<ReturnType<typeof fetchMyPlannedRunsInDateRangeAll>> = [];
   if (displayedGoal) {
-    [goalRuns, goalPlannedRuns] = await Promise.all([
+    [goalRuns, allGoalPlannedRuns] = await Promise.all([
       fetchMyRunsInDateRange(
         displayedGoal.period_start,
         displayedGoal.period_end
       ),
-      fetchMyPlannedRunsInDateRange(
+      fetchMyPlannedRunsInDateRangeAll(
         displayedGoal.period_start,
         displayedGoal.period_end
       ),
     ]);
   }
+
+  // Filter planned runs into two categories:
+  // 1. Active planned runs (status='planned')
+  // 2. Done future plans (status='done' AND completed_run_id is null)
+  const goalPlannedRunsPlanned = allGoalPlannedRuns.filter(
+    (p) => p.status === "planned"
+  );
+  const goalPlannedRunsDoneFuture = allGoalPlannedRuns.filter(
+    (p) => p.status === "done" && p.completed_run_id === null
+  );
 
   // Batch load place names for journal entries
   const placeIds = journalEntries
@@ -166,7 +176,12 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
 
       {/* Goal Dashboard */}
       <div className="mb-8">
-        <GoalDashboard goal={displayedGoal} runs={goalRuns} plannedRuns={goalPlannedRuns} />
+        <GoalDashboard
+          goal={displayedGoal}
+          runs={goalRuns}
+          plannedRunsPlanned={goalPlannedRunsPlanned}
+          plannedRunsDoneFuture={goalPlannedRunsDoneFuture}
+        />
       </div>
 
       {/* Weekly Planned Runs */}

@@ -18,10 +18,16 @@ import PlannedRunCardWithCompletion from "./PlannedRunCardWithCompletion";
 type GoalDashboardProps = {
   goal: UserGoal | null;
   runs: UserRun[];
-  plannedRuns: UserRunPlan[];
+  plannedRunsPlanned: UserRunPlan[];
+  plannedRunsDoneFuture: UserRunPlan[];
 };
 
-export default function GoalDashboard({ goal, runs, plannedRuns }: GoalDashboardProps) {
+export default function GoalDashboard({
+  goal,
+  runs,
+  plannedRunsPlanned,
+  plannedRunsDoneFuture,
+}: GoalDashboardProps) {
   // If no active goal, show create goal UI
   if (!goal) {
     return (
@@ -286,7 +292,7 @@ export default function GoalDashboard({ goal, runs, plannedRuns }: GoalDashboard
         <Separator />
 
         {/* Plánované běhy v období */}
-        {plannedRuns.length > 0 && (
+        {plannedRunsPlanned.length > 0 && (
           <>
             <div>
               <h3 className="text-sm font-semibold mb-3">
@@ -297,8 +303,8 @@ export default function GoalDashboard({ goal, runs, plannedRuns }: GoalDashboard
               {progress.goalPhase === "upcoming" && (
                 <div className="mb-3">
                   <p className="text-xs text-muted-foreground mb-1">
-                    Naplánováno: {plannedRuns.length} běhů,{" "}
-                    {plannedRuns.reduce((sum, p) => sum + p.distance_km, 0).toFixed(1)} km
+                    Naplánováno: {plannedRunsPlanned.length} běhů,{" "}
+                    {plannedRunsPlanned.reduce((sum, p) => sum + p.distance_km, 0).toFixed(1)} km
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Tyto běhy se započítají do progrese až po{" "}
@@ -307,9 +313,78 @@ export default function GoalDashboard({ goal, runs, plannedRuns }: GoalDashboard
                 </div>
               )}
               <div className="space-y-2">
-                {plannedRuns.map((plan) => (
+                {plannedRunsPlanned.map((plan) => (
                   <PlannedRunCardWithCompletion key={plan.id} plan={plan} />
                 ))}
+              </div>
+            </div>
+            <Separator />
+          </>
+        )}
+
+        {/* Done future plans - plans marked as done but didn't create a run yet */}
+        {plannedRunsDoneFuture.length > 0 && (
+          <>
+            <div>
+              <h3 className="text-sm font-semibold mb-3">
+                Hotovo (naplánováno dopředu)
+              </h3>
+              <p className="text-xs text-muted-foreground mb-3">
+                Tyto běhy byly označeny jako splněné, ale ještě neproběhly. Běh se vytvoří automaticky až v den plánovaného běhu.
+              </p>
+              <div className="space-y-2">
+                {plannedRunsDoneFuture.map((plan) => {
+                  const plannedDate = new Date(plan.planned_at);
+                  const plannedDateStr = plannedDate.toLocaleDateString("cs-CZ", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  });
+                  const plannedTimeStr = plannedDate.toLocaleTimeString("cs-CZ", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
+
+                  const completedDate = plan.completed_at
+                    ? new Date(plan.completed_at)
+                    : null;
+                  const completedStr = completedDate
+                    ? completedDate.toLocaleDateString("cs-CZ", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })
+                    : "";
+
+                  return (
+                    <div
+                      key={plan.id}
+                      className="flex items-center justify-between gap-4 rounded-lg border p-3 text-sm"
+                    >
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">
+                            {plannedDateStr} {plannedTimeStr}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">
+                            Čeká na datum
+                          </Badge>
+                        </div>
+                        <div className="flex gap-3 text-muted-foreground">
+                          <span>{plan.distance_km} km</span>
+                          {plan.target_duration_min && (
+                            <span>cíl: {plan.target_duration_min} min</span>
+                          )}
+                        </div>
+                        {completedStr && (
+                          <p className="text-xs text-muted-foreground">
+                            Splněno: {completedStr}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <Separator />
