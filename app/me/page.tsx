@@ -19,7 +19,7 @@ import {
   getPlaceNamesByIds,
 } from "@/lib/db/journal";
 import { fetchMyActiveGoal, fetchMyGoalById } from "@/lib/db/goals";
-import { fetchMyRunsInRange } from "@/lib/db/runs";
+import { fetchMyRunsInDateRange } from "@/lib/db/runs";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import StatsCards from "@/components/profile/StatsCards";
 import TabsSection from "@/components/profile/TabsSection";
@@ -83,17 +83,12 @@ export default async function MyProfilePage({ searchParams }: PageProps) {
     displayedGoal = await fetchMyActiveGoal();
   }
 
-  // Fetch runs for displayed goal period
-  let goalRuns: Awaited<ReturnType<typeof fetchMyRunsInRange>> = [];
+  // Fetch runs for displayed goal period (timezone-proof date filtering)
+  let goalRuns: Awaited<ReturnType<typeof fetchMyRunsInDateRange>> = [];
   if (displayedGoal) {
-    const startOfDay = new Date(displayedGoal.period_start);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(displayedGoal.period_end);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    goalRuns = await fetchMyRunsInRange(
-      startOfDay.toISOString(),
-      endOfDay.toISOString()
+    goalRuns = await fetchMyRunsInDateRange(
+      displayedGoal.period_start,
+      displayedGoal.period_end
     );
   }
 

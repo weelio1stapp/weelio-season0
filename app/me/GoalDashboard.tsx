@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { UserGoal } from "@/lib/db/goals";
 import type { UserRun } from "@/lib/db/runs";
+import { computeGoalProgress } from "@/lib/goals/goalProgress";
 import CreateGoalDialog from "./CreateGoalDialog";
 import DeactivateGoalButton from "./DeactivateGoalButton";
 
@@ -33,29 +34,29 @@ export default function GoalDashboard({ goal, runs }: GoalDashboardProps) {
     );
   }
 
-  // Calculate progress
-  const totalKm = runs.reduce((sum, run) => sum + run.distance_km, 0);
-  const totalRuns = runs.length;
+  // Calculate progress using goal computation layer
+  const progress = computeGoalProgress({
+    goal: {
+      target_distance_km: goal.target_distance_km,
+      target_runs: goal.target_runs,
+      plan_total_runs: goal.plan_total_runs,
+      period_start: goal.period_start,
+      period_end: goal.period_end,
+    },
+    runs: runs.map((r) => ({
+      distance_km: r.distance_km,
+      ran_at: r.ran_at,
+    })),
+  });
 
-  const kmPct = Math.min((totalKm / goal.target_distance_km) * 100, 100);
-  const runsPct = Math.min((totalRuns / goal.target_runs) * 100, 100);
-  const planPct = Math.min((totalRuns / goal.plan_total_runs) * 100, 100);
+  // Convert to percentages for UI
+  const kmPct = progress.kmPct * 100;
+  const runsPct = progress.runsPct * 100;
+  const planPct = progress.planPct * 100;
+  const totalKm = progress.totalKm;
+  const totalRuns = progress.totalRuns;
 
-  // Calculate time progress
-  const today = new Date();
-  const periodStart = new Date(goal.period_start);
-  const periodEnd = new Date(goal.period_end);
-  const totalDays = Math.max(
-    (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24),
-    1
-  );
-  const elapsedDays = Math.max(
-    (today.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24),
-    0
-  );
-  const timePct = Math.min(Math.max(elapsedDays / totalDays, 0), 1);
-  const delta = kmPct / 100 - timePct;
-
+  // Map status to badge
   let statusBadge: {
     label: string;
     variant: "default" | "secondary" | "destructive";
@@ -63,10 +64,24 @@ export default function GoalDashboard({ goal, runs }: GoalDashboardProps) {
     label: "Jedeš podle plánu",
     variant: "secondary",
   };
-  if (delta >= 0.05) {
+  if (progress.status === "ahead") {
     statusBadge = { label: "Jsi napřed", variant: "default" };
-  } else if (delta <= -0.05) {
+  } else if (progress.status === "behind") {
     statusBadge = { label: "Jsi ve skluzu", variant: "destructive" };
+  }
+
+  // Map plan status to badge
+  let planStatusBadge: {
+    label: string;
+    variant: "default" | "secondary" | "destructive";
+  } = {
+    label: "Plán: podle plánu",
+    variant: "secondary",
+  };
+  if (progress.status_plan === "ahead") {
+    planStatusBadge = { label: "Plán: napřed", variant: "default" };
+  } else if (progress.status_plan === "behind") {
+    planStatusBadge = { label: "Plán: skluz", variant: "destructive" };
   }
 
   // Format period for display
@@ -82,6 +97,9 @@ export default function GoalDashboard({ goal, runs }: GoalDashboardProps) {
           <CardTitle>Projekt Krysa 🐀</CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
+            <Badge variant={planStatusBadge.variant} className="text-xs">
+              {planStatusBadge.label}
+            </Badge>
             <CreateGoalDialog
               triggerLabel="Změnit cíl"
               existingGoal={{
@@ -146,6 +164,51 @@ export default function GoalDashboard({ goal, runs }: GoalDashboardProps) {
             <p className="text-xs text-muted-foreground mt-1 text-right">
               {planPct.toFixed(0)}%
             </p>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Cílovník (Target Tracker) */}
+        <div>
+          <h3 className="text-sm font-semibold mb-3">Cílovník</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Dnes máš mít (časově):</span>
+              <span className="font-medium">
+                {progress.expectedKmByNow.toFixed(1)} km, {progress.expectedRunsByNow.toFixed(1)} běhů
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Dnes máš mít (plán 6/týden):</span>
+              <span className="font-medium">
+                {progress.expectedKmByNow_plan.toFixed(1)} km, {progress.expectedRunsByNow_plan.toFixed(1)} běhů
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Máš hotovo:</span>
+              <span className="font-medium">
+                {totalKm.toFixed(1)} km, {totalRuns} běhů
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Rozdíl (časově):</span>
+              <span className={`font-medium ${progress.deltaKm >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {progress.deltaKm >= 0 ? '+' : ''}{progress.deltaKm.toFixed(1)} km, {progress.deltaRuns >= 0 ? '+' : ''}{progress.deltaRuns.toFixed(1)} běhů
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Rozdíl (plán):</span>
+              <span className={`font-medium ${progress.deltaKm_plan >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {progress.deltaKm_plan >= 0 ? '+' : ''}{progress.deltaKm_plan.toFixed(1)} km, {progress.deltaRuns_plan >= 0 ? '+' : ''}{progress.deltaRuns_plan.toFixed(1)} běhů
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Tempo plnění:</span>
+              <span className="font-medium">
+                km {(progress.kmPct * 100).toFixed(0)}% vs čas {(progress.timePct * 100).toFixed(0)}%
+              </span>
+            </div>
           </div>
         </div>
 

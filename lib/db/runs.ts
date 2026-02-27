@@ -66,3 +66,30 @@ export async function fetchMyRunsInRange(
 
   return (data ?? []) as UserRun[];
 }
+
+/**
+ * Fetch user's runs within a date range using timezone-proof date filtering
+ * @param periodStart - Start date in YYYY-MM-DD format
+ * @param periodEnd - End date in YYYY-MM-DD format (inclusive)
+ */
+export async function fetchMyRunsInDateRange(
+  periodStart: string,
+  periodEnd: string
+): Promise<UserRun[]> {
+  const supabase = await getSupabaseServerClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase.rpc("fetch_my_runs_in_date_range", {
+    period_start: periodStart,
+    period_end: periodEnd,
+  });
+
+  if (error) {
+    console.error("fetchMyRunsInDateRange error:", error);
+    return [];
+  }
+
+  return (data ?? []) as UserRun[];
+}
